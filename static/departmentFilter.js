@@ -1,9 +1,7 @@
 "use strict";
 
 /*
- * Button visibility by department.
- *
- * Button names must match the HTML element IDs exactly.
+ * Every code must exactly match the HTML element ID.
  */
 const departmentButtons = {
     all: [
@@ -13,6 +11,7 @@ const departmentButtons = {
         "Q3",
         "Q6",
         "Q7",
+        "Q8",
         "Q8b",
         "Q9",
         "D1a1",
@@ -58,7 +57,7 @@ const departmentButtons = {
         "P11",
         "P12",
         "P13"
-    ]
+    ],
 
     com: [
         "S1",
@@ -124,6 +123,9 @@ const departmentButtons = {
         "D9",
         "D10",
         "D11",
+        "I12",
+        "I14",
+        "I15",
         "P3a",
         "P3b",
         "P6",
@@ -142,19 +144,73 @@ const departmentButtons = {
     ]
 };
 
+const departmentDisplayNames = {
+    all: "ALL DEPARTMENTS",
+    com: "COMMERCIAL",
+    eng: "ENGINEERING",
+    man: "MANUFACTURING",
+    pur: "PURCHASING",
+    qa: "QUALITY"
+};
+
 /*
- * Produces one complete list of every controlled button.
- *
- * Set removes duplicates such as S1, Q7 and P8.
+ * Every item that can be controlled by the filter.
  */
 const allDepartmentButtonIds = new Set(
-    Object.values(departmentButtons).flat()
+    departmentButtons.all
 );
 
-function applyDepartmentFilter(department) {
-    const normalisedDepartment = String(department)
+/*
+ * Accept both abbreviated and full department names.
+ */
+function normaliseDepartment(value) {
+    const department = String(value || "")
         .trim()
         .toLowerCase();
+
+    const mappings = {
+        all: "all",
+
+        com: "com",
+        commercial: "com",
+
+        eng: "eng",
+        engineering: "eng",
+
+        man: "man",
+        manufacturing: "man",
+
+        pur: "pur",
+        purchasing: "pur",
+
+        qa: "qa",
+        quality: "qa"
+    };
+
+    return mappings[department] || "all";
+}
+
+function updateDepartmentDisplay(department) {
+    const departmentDisplay =
+        document.getElementById("current-department");
+
+    if (!departmentDisplay) {
+        return;
+    }
+
+    const normalisedDepartment =
+        normaliseDepartment(department);
+
+    departmentDisplay.textContent =
+        departmentDisplayNames[normalisedDepartment]
+        || "ALL DEPARTMENTS";
+}
+
+function applyDepartmentFilter(department) {
+    const normalisedDepartment =
+        normaliseDepartment(department);
+
+    updateDepartmentDisplay(normalisedDepartment);
 
     const selectedButtonIds =
         normalisedDepartment === "all"
@@ -166,6 +222,9 @@ function applyDepartmentFilter(department) {
     allDepartmentButtonIds.forEach(function (buttonId) {
         const element = document.getElementById(buttonId);
 
+        /*
+         * Items on other pages will not exist in the current DOM.
+         */
         if (!element) {
             return;
         }
@@ -178,6 +237,16 @@ function applyDepartmentFilter(department) {
             !shouldShow
         );
     });
+
+    console.log(
+        "Department selected:",
+        normalisedDepartment
+    );
+
+    console.log(
+        "Buttons allowed:",
+        [...selectedButtonIds]
+    );
 }
 
 function initialiseDepartmentFilter() {
@@ -191,41 +260,10 @@ function initialiseDepartmentFilter() {
         return;
     }
 
-    const validDepartments = [
-        "all",
-        "com",
-        "eng",
-        "man",
-        "pur",
-        "qa"
-    ];
-
-    let savedDepartment =
-        localStorage.getItem("selectedDepartment") || "all";
-
-    savedDepartment = String(savedDepartment)
-        .trim()
-        .toLowerCase();
-
-    /*
-     * Convert old saved values from the previous dropdown.
-     */
-    const oldValueMappings = {
-        All: "all",
-        Com: "com",
-        Eng: "eng",
-        Man: "man",
-        Pur: "pur",
-        QA: "qa"
-    };
-
-    savedDepartment =
-        oldValueMappings[savedDepartment]
-        || savedDepartment;
-
-    if (!validDepartments.includes(savedDepartment)) {
-        savedDepartment = "all";
-    }
+    const savedDepartment =
+        normaliseDepartment(
+            localStorage.getItem("selectedDepartment") || "all"
+        );
 
     departmentSelect.value = savedDepartment;
 
@@ -240,7 +278,7 @@ function initialiseDepartmentFilter() {
         "change",
         function () {
             const department =
-                departmentSelect.value;
+                normaliseDepartment(departmentSelect.value);
 
             localStorage.setItem(
                 "selectedDepartment",

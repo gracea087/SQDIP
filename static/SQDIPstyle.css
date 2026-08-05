@@ -252,6 +252,7 @@ button,
     margin-top: 10px;
     font-weight: bold;
     width: 75px;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
 }
 
 .button-container {
