@@ -18,7 +18,7 @@ CONN_STR = (
 
     'SERVER=localhost\\SQLEXPRESS;' 
 
-    'DATABASE=AppDB;' 
+    'DATABASE=Pcubed;' 
 
     'Trusted_Connection=yes;' 
 
@@ -77,9 +77,7 @@ def get_products():
  
 
 @app.route('/api/status') 
-
 def status(): 
-
     return jsonify({'status': 'running', 'server': 'Waitress'}) 
 
  
