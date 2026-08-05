@@ -31,15 +31,17 @@ body {
     position: fixed;
     left: 0;
     top: 0;
-    width: 260px;
+    width: var(--sidebar-width);
     height: 100vh;
     background-color: #072147;
-    margin: 0;
+    margin: 0 auto 5px auto;
     padding: 0;
     border: none;
     border-radius: 0;
     overflow-y: auto;
     z-index: 3000;
+    font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+    font-size: 100px;
 }
 
 .navbar ul,
@@ -75,7 +77,6 @@ body {
 .sidebar-menu a:hover {
     background-color: #94cbff;
     color: black;
-    text-decoration: underline;
 }
 
 .navbar a.active,
@@ -114,7 +115,7 @@ body {
     width: 100%;
     height: 78px;
     min-height: 78px;
-    background-color: #20457e;
+    background-color: #072147;
     color: white;
     display: flex;
     align-items: center;
@@ -295,4 +296,25 @@ textarea:focus,
     border: 1px solid #ccc;
     padding: 15px;
     box-sizing: border-box;
+}
+
+.sidebar-logo-link {
+    display: block;
+    width: var(--sidebar-width);
+    height: var(--topbar-height);
+    min-height: 0;
+    border: 0;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-logo-link:hover {
+    background: transparent;
+}
+
+.sidebar-logo-img {
+    display: block;
+    width: var(--sidebar-width);
+    height: var(--topbar-height);
+    object-fit: contain;
 }

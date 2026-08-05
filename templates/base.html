@@ -1,32 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <title>{{ page_title|default("Engineering Test Database") }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='SQDIPstyle.css') }}">
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='PhoenixLogo.png') }}">
 
-    {% block extra_head %}
-    {% endblock %}
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        {{ page_title|default("SQDIP") }}
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='SQDIPstyle.css') }}"
+    >
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="{{ url_for('static', filename='PhoenixLogo.png') }}"
+    >
+
+    {% block extra_head %}{% endblock %}
 </head>
 
 <body>
 
-{% include "includes/navbar.html" %}
+    {% include "includes/navbar.html" %}
 
-<div class="page-shell">
+    <div class="page-shell">
 
-    {% include "includes/top_panel.html" %}
+        {% include "includes/top_panel.html" %}
 
-    <div class="main-content">
-        {% block content %}
-        {% endblock %}
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+
     </div>
 
-</div>
-
-{% block extra_scripts %}
-{% endblock %}
+    {% block extra_scripts %}{% endblock %}
 
 </body>
 </html>

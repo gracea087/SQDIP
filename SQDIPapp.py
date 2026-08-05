@@ -26,13 +26,25 @@ CONN_STR = (
 
  
 
-@app.route('/') 
+@app.route('/safety')
+def safety():
+    return render_template('safety.html')
 
-def index(): 
+@app.route('/quality')
+def quality():
+    return render_template('quality.html')
 
-    return render_template('index.html') 
+@app.route('/deliverables')
+def deliverables():
+    return render_template('deliverables.html')
 
- 
+@app.route('/inventory')
+def inventory():
+    return render_template('inventory.html')
+
+@app.route('/productivity')
+def productivity():
+    return render_template('productivity.html')
 
 @app.route('/api/products') 
 

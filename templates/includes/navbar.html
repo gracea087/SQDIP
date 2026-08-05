@@ -1,48 +1,44 @@
-{% set access_level = session.get("access_level", "")|lower %}
-
 <nav class="app-sidebar">
 
     <div class="sidebar-logo">
-        <img class="sidebar-logo-img" src="/static/PhoenixLogo.png" alt="Phoenix Systems UK Logo">
+        <img
+            class="sidebar-logo-img"
+            src="{{ url_for('static', filename='PhoenixLogo.png') }}"
+            alt="Phoenix Systems UK Logo"
+        >
     </div>
 
     <ul class="sidebar-menu">
-
         <li>
-            <a href="/home">
-                <i class="fa fa-home"></i>
+            <a href="{{ url_for('safety') }}">
                 <span>S</span>
             </a>
         </li>
 
         <li>
-            <a href="/applications">
-                <i class="fa fa-asterisk"></i>
+            <a href="{{ url_for('quality') }}">
                 <span>Q</span>
             </a>
         </li>
 
         <li>
-            <a href="/tests">
-                <i class="fa fa-list-alt"></i>
+            <a href="{{ url_for('deliverables') }}">
                 <span>D</span>
             </a>
         </li>
-        
+
         <li>
-            <a href="/diagnose-faults">
-                <i class="fa fa-wrench"></i>
+            <a href="{{ url_for('inventory') }}">
                 <span>I</span>
             </a>
         </li>
 
         <li>
-            <a href="{{ url_for('edit_entry') }}">
-                <i class="fa fa-pencil-square-o"></i>
+            <a href="{{ url_for('productivity') }}">
                 <span>P</span>
             </a>
         </li>
-
+        
     </ul>
 
 </nav>
