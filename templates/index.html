@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% set page_title = "Home" %}
+
+  <h1>Product Catalogue</h1> 
+
+  <div id="status"></div> 
+
+  <button onclick="load()">Refresh</button> 
+
+  <table> 
+
+    <thead> 
+
+      <tr><th>ID</th><th>Name</th> 
+
+          <th>Price</th><th>Stock</th></tr> 
+
+    </thead> 
+
+    <tbody id="rows"> 
+
+      <tr><td colspan="4">Loading...</td></tr> 
+
+    </tbody> 
+
+  </table> 
+
+  <script> 
+
+    async function checkStatus() { 
+
+      const r = await fetch('/api/status'); 
+
+      const d = await r.json(); 
+
+      const el = document.getElementById('status'); 
+
+      el.className = 'status ok'; 
+
+      el.textContent = 'Server: ' + d.server + ' - Connected'; 
+
+    } 
+
+    async function load() { 
+
+      const r    = await fetch('/api/products'); 
+
+      const data = await r.json(); 
+
+      const tb   = document.getElementById('rows'); 
+
+      if (data.error) { 
+
+        tb.innerHTML = '<tr><td colspan="4">' 
+
+                     + data.error + '</td></tr>'; 
+
+        return; 
+
+      } 
+
+      tb.innerHTML = data.map(p => 
+
+        '<tr><td>' + p.id + '</td>' + 
+
+        '<td>' + p.name + '</td>' + 
+
+        '<td>£' + p.price.toFixed(2) + '</td>' + 
+
+        '<td>' + p.stock + '</td></tr>' 
+
+      ).join(''); 
+
+    } 
+
+    checkStatus(); 
+
+    load(); 
+
+  </script> 

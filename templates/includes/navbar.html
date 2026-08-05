@@ -1,0 +1,48 @@
+{% set access_level = session.get("access_level", "")|lower %}
+
+<nav class="app-sidebar">
+
+    <div class="sidebar-logo">
+        <img class="sidebar-logo-img" src="/static/PhoenixLogo.png" alt="Phoenix Systems UK Logo">
+    </div>
+
+    <ul class="sidebar-menu">
+
+        <li>
+            <a href="/home">
+                <i class="fa fa-home"></i>
+                <span>S</span>
+            </a>
+        </li>
+
+        <li>
+            <a href="/applications">
+                <i class="fa fa-asterisk"></i>
+                <span>Q</span>
+            </a>
+        </li>
+
+        <li>
+            <a href="/tests">
+                <i class="fa fa-list-alt"></i>
+                <span>D</span>
+            </a>
+        </li>
+        
+        <li>
+            <a href="/diagnose-faults">
+                <i class="fa fa-wrench"></i>
+                <span>I</span>
+            </a>
+        </li>
+
+        <li>
+            <a href="{{ url_for('edit_entry') }}">
+                <i class="fa fa-pencil-square-o"></i>
+                <span>P</span>
+            </a>
+        </li>
+
+    </ul>
+
+</nav>
