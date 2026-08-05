@@ -243,21 +243,31 @@ button,
 .btn,
 .submit-btn {
     padding: 10px 20px;
-    background: var(--green-main);
+    background: var(--navy-hover);
     color: #fff;
-    border: none;
+    border-radius: 10px;
+    border: 2px solid var(--navy-active);
     cursor: pointer;
     margin-bottom: 16px;
     margin-top: 10px;
-    border-radius: 0;
     font-weight: bold;
+    width: 75px;
+}
+
+.button-container {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
 }
 
 button:hover,
 .btn:hover,
 .submit-btn:hover {
-    background: var(--green-hover);
+    background: var(--blue-main);
     color: white;
+    border-radius: 15px;
+    border: 2px solid var(--navy-dark);
 }
 
 button:disabled {
