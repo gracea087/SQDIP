@@ -9,42 +9,91 @@
     </div>
 
     <ul class="sidebar-menu">
-        <li>
-            <a href="{{ url_for('safety') }}">
-                <span>S</span>
-            </a>
-        </li>
 
-        <li>
-            <a href="{{ url_for('quality') }}">
-                <span>Q</span>
-            </a>
-        </li>
+    <li>
+        <a
+            href="{{ url_for('safety') }}"
+            class="{% if request.endpoint == 'safety' %}active{% endif %}"
+            title="Safety"
+        >
+            <span>S</span>
+        </a>
+    </li>
 
-        <li>
-            <a href="{{ url_for('deliverables') }}">
-                <span>D</span>
-            </a>
-        </li>
+    <li>
+        <a
+            href="{{ url_for('quality') }}"
+            class="{% if request.endpoint == 'quality' %}active{% endif %}"
+            title="Quality"
+        >
+            <span>Q</span>
+        </a>
+    </li>
 
-        <li>
-            <a href="{{ url_for('inventory') }}">
-                <span>I</span>
-            </a>
-        </li>
+    <li>
+        <a
+            href="{{ url_for('deliverables') }}"
+            class="{% if request.endpoint == 'deliverables' %}active{% endif %}"
+            title="Deliverables"
+        >
+            <span>D</span>
+        </a>
+    </li>
 
-        <li>
-            <a href="{{ url_for('productivity') }}">
-                <span>P</span>
-            </a>
-        </li>
+    <li>
+        <a
+            href="{{ url_for('inventory') }}"
+            class="{% if request.endpoint == 'inventory' %}active{% endif %}"
+            title="Inventory"
+        >
+            <span>I</span>
+        </a>
+    </li>
 
-        <li>
+    <li>
+        <a
+            href="{{ url_for('productivity') }}"
+            class="{% if request.endpoint == 'productivity' %}active{% endif %}"
+            title="Productivity"
+        >
+            <span>P</span>
+        </a>
+    </li>
+
+        <li class="department-filter">
+
+            <label for="department-select">
+                Department
+            </label>
+
+            <div class="department-select-wrapper">
+                <select
+                    id="department-select"
+                    name="department"
+                    aria-label="Select department"
+                >
+                    <option value="all">All</option>
+                    <option value="com">Com</option>
+                    <option value="eng">Eng</option>
+                    <option value="man">Man</option>
+                    <option value="pur">Pur</option>
+                    <option value="qa">QA</option>
+                </select>
+
+                <i
+                    class="fa fa-angle-down"
+                    aria-hidden="true"
+                ></i>
+            </div>
+
+        </li>
+        
+
+        <li style="font-size: 50px;" class="nav-item push-to-bottom">
             <a>
                 <span><i class="fa fa-arrow-left"></i></span>
             </a>
         </li>
-        
-    </ul>
+      </ul>  
 
 </nav>

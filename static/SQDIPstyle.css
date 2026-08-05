@@ -328,3 +328,106 @@ textarea:focus,
     height: var(--topbar-height);
     object-fit: contain;
 }
+
+
+/* Department selector container */
+.sidebar-menu .department-filter {
+    width: 100%;
+    padding: 5px 6px 7px;
+    margin: 4px 0;
+    box-sizing: border-box;
+
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Department heading */
+.department-filter label {
+    display: block;
+    margin: 0 0 2px 0;
+    padding: 0;
+
+    color: #ffffff;
+    font-size: 11px;
+    line-height: 13px;
+    font-weight: bold;
+    letter-spacing: 0.3px;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+/* Select container */
+.department-select-wrapper {
+    position: relative;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+/* Department dropdown */
+.department-select-wrapper select {
+    display: block;
+    width: 100%;
+    height: 38px;
+    margin: 0;
+    padding: 0 18px 0 5px;
+
+    background-color: var(--navy-dark);
+    color: #ffffff;
+
+    border: 1px solid #4f7095;
+    border-radius: 5px;
+
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    line-height: 38px;
+    font-weight: bold;
+
+    cursor: pointer;
+
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+.department-select-wrapper select:hover {
+    background-color: var(--navy-hover);
+    border-color: #94cbff;
+}
+
+.department-select-wrapper select:focus {
+    outline: none;
+    border-color: #94cbff;
+    box-shadow: 0 0 4px rgba(148, 203, 255, 0.55);
+}
+
+/* Custom dropdown arrow */
+.department-select-wrapper i {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+
+    color: #ffffff;
+    font-size: 13px;
+    line-height: 1;
+
+    pointer-events: none;
+}
+
+.push-to-bottom {
+  margin-top: auto;
+}
+
+.navbar a.active,
+.sidebar-menu a.active {
+    background-color: #6696c4;
+    color: rgb(0, 0, 0);
+    border-left-color: var(--orange-main);
+}
+
+.department-hidden {
+    display: none !important;
+}
