@@ -15,6 +15,8 @@
     --green-hover: #438b70;
     --blue-main: #0a3053;
     --danger-main: #b00020;
+    --graph-main: #4182d8;
+    --graph-negative:#f1254b;
 }
 
 body {
@@ -431,4 +433,101 @@ textarea:focus,
 
 .department-hidden {
     display: none !important;
+}
+
+.productivity-graph-panel {
+    width: calc(100% - 40px);
+    margin: 20px;
+    padding: 18px;
+
+    border: 1px solid #d6dce2;
+    border-radius: 6px;
+
+    background: #ffffff;
+    box-sizing: border-box;
+}
+
+
+.productivity-graph-panel[hidden] {
+    display: none;
+}
+
+
+.productivity-graph {
+    width: 100%;
+    min-width: 0;
+    overflow: visible;
+}
+
+
+/*
+ * P13 CoSHH graph styling.
+ *
+ * The chart library automatically places
+ * data-chart-id="p13_coshh" on the shared
+ * graph target when P13 is selected.
+ */
+#productivityGraph[
+    data-chart-id="p13_coshh"
+] {
+    --sqdip-positive-bar: var(--graph-main);
+    --sqdip-negative-bar: var(--graph-negative);
+
+    --sqdip-row-height: 28px;
+    --sqdip-left-label-width: 230px;
+
+    --sqdip-label-size: 13px;
+    --sqdip-value-size: 12px;
+}
+
+
+@media (max-width: 800px) {
+    .productivity-graph-panel {
+        width: calc(100% - 20px);
+        margin: 10px;
+        padding: 10px;
+    }
+
+
+    #productivityGraph[
+        data-chart-id="p13_coshh"
+    ] {
+        --sqdip-row-height: 34px;
+        --sqdip-left-label-width: 135px;
+        --sqdip-label-size: 11px;
+        --sqdip-value-size: 10px;
+    }
+}
+
+
+#inventoryGraph[
+    data-chart-id="I2a_wip"
+] {
+    --sqdip-positive-bar: var(--graph-main);
+    --sqdip-negative-bar: var(--graph-negative);
+
+    --sqdip-row-height: 45px;
+    --sqdip-left-label-width: 230px;
+
+    --sqdip-label-size: 13px;
+    --sqdip-value-size: 12px;
+}
+
+
+@media (max-width: 800px) {
+    .inventory-graph-panel {
+        width: calc(100% - 20px);
+        margin: 10px;
+        padding: 10px;
+    }
+
+
+    #inventoryGraph[
+        data-chart-id="I2a_wip"
+    ] {
+        --sqdip-row-height: 34px;
+        --sqdip-left-label-width: 135px;
+        --sqdip-label-size: 11px;
+        --sqdip-value-size: 10px;
+    }
 }

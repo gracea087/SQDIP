@@ -5,30 +5,58 @@
 {% block content %}
 
 <div class="button-container">
-<button id="P1" type="button">P1</button>
-<br>
-<button id="P2" type="button">P2</button>
-<br>
-<button id="P3a" type="button">P3a</button>
-<br>
-<button id="P3b" type="button">P3b</button>
-<br>
-<button id="P4" type="button">P4</button>
-<br>
-<button id="P5" type="button">P5</button>
-<br>
-<button id="P6" type="button">P6</button>
-<br>
-<button id="P8" type="button">P8</button>
-<br>
-<button id="P9" type="button">P9</button>
-<br>
-<button id="P10" type="button">P10</button>
-<br>
-<button id="P11" type="button">P11</button>
-<br>
-<button id="P12" type="button">P12</button>
-<br>
-<button id="P13" type="button">P13</button>
+    <button id="P1" type="button">P1</button>
+    <br>
+
+    <button id="P2" type="button">P2</button>
+    <br>
+
+    <button id="P3a" type="button">P3a</button>
+    <br>
+
+    <button id="P3b" type="button">P3b</button>
+    <br>
+
+    <button id="P4" type="button">P4</button>
+    <br>
+
+    <button id="P5" type="button">P5</button>
+    <br>
+
+    <button id="P6" type="button">P6</button>
+    <br>
+
+    <button id="P8" type="button">P8</button>
+    <br>
+
+    <button id="P9" type="button">P9</button>
+    <br>
+
+    <button id="P10" type="button">P10</button>
+    <br>
+
+    <button id="P11" type="button">P11</button>
+    <br>
+
+    <button id="P12" type="button">P12</button>
+    <br>
+
+    <button id="P13" type="button" data-sqdip-chart="p13_coshh">P13</button>
 </div>
+
+<section
+    id="productivityGraphPanel"
+    class="productivity-graph-panel"
+    hidden
+>
+    <div
+        id="productivityGraph"
+        class="productivity-graph"
+    ></div>
+</section>
+
+<script src="{{ url_for( 'static', filename='sqdip-charts.js' ) }}"></script>
+
+<script src="{{ url_for('static', filename='productivity.js') }}"></script>
+
 {% endblock %}

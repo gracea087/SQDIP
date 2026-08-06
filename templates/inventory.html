@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="button-container">
-<button id="I2a" type="button" >I2a</button>
+<button id="I2a" type="button" data-sqdip-chart="I2a_wip" >I2a</button>
 <br>
 <button id="I2b" type="button">I2b</button>
 <br>
@@ -32,4 +32,19 @@
 <br>
 <button id="I15" type="button">I15</button>
 </div>
+
+<section
+    id="inventoryGraphPanel"
+    class="inventory-graph-panel"
+    hidden
+>
+    <div
+        id="inventoryGraph"
+        class="inventory-graph"
+    ></div>
+</section>
+
+<script src="{{ url_for( 'static', filename='sqdip-charts.js' ) }}"></script>
+
+<script src="{{ url_for('static', filename='inventory.js') }}"></script>
 {% endblock %}

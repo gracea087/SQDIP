@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block head %}
+    {{ super() }}
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/sqdip-charts.css') }}"
+    >
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/sqdip-page.css') }}"
+    >
+{% endblock %}
+
+{% block content %}
+<section
+    class="sqdip-page"
+    aria-labelledby="pageTitle"
+>
+    <header class="sqdip-page__header">
+        <h1 id="pageTitle">
+            SQDIP Production Graphs
+        </h1>
+
+        <nav
+            class="sqdip-page__buttons"
+            aria-label="Choose graph"
+        >
+            <button
+                type="button"
+                data-sqdip-chart="hours_by_part"
+                data-sqdip-default
+            >
+                Hours by part
+            </button>
+
+            <button
+                type="button"
+                data-sqdip-chart="late_orders"
+            >
+                Late orders
+            </button>
+
+            <button
+                type="button"
+                data-sqdip-chart="yield_by_department"
+            >
+                Yield by department
+            </button>
+        </nav>
+    </header>
+
+    <!--
+        No canvas is required.
+        The library creates an SVG here.
+
+        The element grows vertically to show every bar.
+        It never becomes an internally scrolling graph container.
+    -->
+    <div
+        id="sqdipGraph"
+        class="sqdip-page__graph"
+    ></div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+
+    <script
+        src="{{ url_for('static', filename='js/sqdip-charts.js') }}"
+    ></script>
+
+    <script
+        src="{{ url_for('static', filename='js/sqdip-page.js') }}"
+    ></script>
+{% endblock %}

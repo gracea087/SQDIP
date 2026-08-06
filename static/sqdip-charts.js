@@ -1,0 +1,1358 @@
+"use strict";
+
+/*
+ * SQDIP Charts
+ * Lightweight, dependency-free horizontal bar chart library.
+ *
+ * Public API:
+ *   SQDIPCharts.create(target, options)
+ *   SQDIPCharts.render(target, payload, options)
+ *   SQDIPCharts.load(target, url, options)
+ *   SQDIPCharts.mountButtons(options)
+ *   SQDIPCharts.registerFormatter(name, formatter)
+ *
+ * Expected payload:
+ * {
+ *   "meta": {
+ *     "title": "Hours by part number",
+ *     "xLabel": "Hours",
+ *     "axis": "left",           // left | both | centre
+ *     "formatter": "hours",
+ *     "min": 0,
+ *     "max": null
+ *   },
+ *   "data": [
+ *     { "y": "PART-001", "x": 12.5 },
+ *     { "y": "PART-002", "x": 8.0 }
+ *   ]
+ * }
+ */
+
+(function initialiseSQDIPCharts(global) {
+    const SVG_NS = "http://www.w3.org/2000/svg";
+    const instances = new WeakMap();
+    const formatters = new Map();
+
+    const DEFAULTS = Object.freeze({
+        axis: "left",
+        title: "",
+        subtitle: "",
+        xLabel: "",
+        formatter: "number",
+        min: null,
+        max: null,
+        symmetric: true,
+        tickCount: 5,
+        minHeight: 280,
+        rowHeight: null,
+        barHeightRatio: 0.62,
+        leftLabelWidth: null,
+        rightLabelWidth: null,
+        centreLabelWidth: null,
+        showValues: true,
+        showGrid: true,
+        showZeroLine: true,
+        emptyMessage: "No data is available for this graph.",
+        loadingMessage: "Loading graph…",
+        errorMessage: "The graph could not be loaded.",
+        ariaLabel: "Horizontal bar chart",
+        valueKey: "x",
+        labelKey: "y",
+        tooltipKey: "tooltip",
+        idKey: "id",
+        classKey: "className",
+        sort: "none",             // none | ascending | descending | label
+        zeroValueText: "0",
+        maxLabelCharacters: 80,
+        resizeDebounceMs: 80
+    });
+
+    formatters.set("number", value => new Intl.NumberFormat("en-GB", {
+        maximumFractionDigits: 2
+    }).format(value));
+
+    formatters.set("integer", value => new Intl.NumberFormat("en-GB", {
+        maximumFractionDigits: 0
+    }).format(value));
+
+    formatters.set("percent", value => `${new Intl.NumberFormat("en-GB", {
+        maximumFractionDigits: 1
+    }).format(value)}%`);
+
+    formatters.set("hours", value => `${new Intl.NumberFormat("en-GB", {
+        maximumFractionDigits: 2
+    }).format(value)} h`);
+
+    formatters.set("minutes", value => `${new Intl.NumberFormat("en-GB", {
+        maximumFractionDigits: 0
+    }).format(value)} min`);
+
+    function resolveElement(target) {
+        if (target instanceof Element) {
+            return target;
+        }
+
+        if (typeof target === "string") {
+            const element = document.querySelector(target);
+            if (element) {
+                return element;
+            }
+        }
+
+        throw new Error("SQDIPCharts: graph target was not found.");
+    }
+
+    function createSvgElement(name, attributes = {}, text = null) {
+        const element = document.createElementNS(SVG_NS, name);
+
+        Object.entries(attributes).forEach(([key, value]) => {
+            if (value !== null && value !== undefined) {
+                element.setAttribute(key, String(value));
+            }
+        });
+
+        if (text !== null && text !== undefined) {
+            element.textContent = String(text);
+        }
+
+        return element;
+    }
+
+    function normaliseAxis(axis) {
+        const value = String(axis || "left").toLowerCase();
+        return ["left", "both", "centre"].includes(value) ? value : "left";
+    }
+
+    function safeNumber(value) {
+        const number = Number(value);
+        return Number.isFinite(number) ? number : null;
+    }
+
+    function cssNumber(element, propertyName, fallback) {
+        const raw = getComputedStyle(element).getPropertyValue(propertyName).trim();
+        const value = Number.parseFloat(raw);
+        return Number.isFinite(value) ? value : fallback;
+    }
+
+    function escapeClassNames(value) {
+        return String(value || "")
+            .split(/\s+/)
+            .filter(Boolean)
+            .map(item => item.replace(/[^a-zA-Z0-9_-]/g, "-"))
+            .join(" ");
+    }
+
+    function truncate(text, maximumCharacters) {
+        const value = String(text ?? "");
+        if (value.length <= maximumCharacters) {
+            return value;
+        }
+        return `${value.slice(0, Math.max(0, maximumCharacters - 1))}…`;
+    }
+
+    function debounce(callback, delayMs) {
+        let timeoutId = null;
+        return (...args) => {
+            window.clearTimeout(timeoutId);
+            timeoutId = window.setTimeout(() => callback(...args), delayMs);
+        };
+    }
+
+    function mergeOptions(base, extra) {
+        return {
+            ...base,
+            ...(extra || {}),
+            axis: normaliseAxis(extra?.axis ?? base.axis)
+        };
+    }
+
+    function normalisePayload(payload, options) {
+        const source = payload && typeof payload === "object" ? payload : {};
+        const metadata = source.meta && typeof source.meta === "object" ? source.meta : {};
+        const mergedOptions = mergeOptions(options, metadata);
+        const sourceRows = Array.isArray(source.data)
+            ? source.data
+            : (Array.isArray(source.rows) ? source.rows : []);
+
+        const rows = sourceRows
+            .map((row, index) => {
+                const item = row && typeof row === "object" ? row : {};
+                const value = safeNumber(item[mergedOptions.valueKey]);
+
+                if (value === null) {
+                    return null;
+                }
+
+                return {
+                    index,
+                    id: item[mergedOptions.idKey] ?? index,
+                    label: truncate(
+                        item[mergedOptions.labelKey] ?? "",
+                        mergedOptions.maxLabelCharacters
+                    ),
+                    fullLabel: String(item[mergedOptions.labelKey] ?? ""),
+                    value,
+                    tooltip: item[mergedOptions.tooltipKey] ?? null,
+                    className: escapeClassNames(item[mergedOptions.classKey]),
+                    raw: item
+                };
+            })
+            .filter(Boolean);
+
+        switch (mergedOptions.sort) {
+            case "ascending":
+                rows.sort((a, b) => a.value - b.value);
+                break;
+
+            case "descending":
+                rows.sort((a, b) => b.value - a.value);
+                break;
+
+            case "label":
+                rows.sort((a, b) => a.label.localeCompare(
+                    b.label,
+                    "en-GB",
+                    { numeric: true }
+                ));
+                break;
+
+            default:
+                break;
+        }
+
+        return {
+            options: mergedOptions,
+            rows
+        };
+    }
+
+    function niceStep(rawStep) {
+        if (!Number.isFinite(rawStep) || rawStep <= 0) {
+            return 1;
+        }
+
+        const exponent = Math.floor(Math.log10(rawStep));
+        const fraction = rawStep / (10 ** exponent);
+        let niceFraction;
+
+        if (fraction <= 1) {
+            niceFraction = 1;
+        } else if (fraction <= 2) {
+            niceFraction = 2;
+        } else if (fraction <= 5) {
+            niceFraction = 5;
+        } else {
+            niceFraction = 10;
+        }
+
+        return niceFraction * (10 ** exponent);
+    }
+
+    function calculateScale(rows, options) {
+        const values = rows.map(row => row.value);
+
+        let minimum = options.min !== null
+            ? safeNumber(options.min)
+            : Math.min(0, ...values);
+
+        let maximum = options.max !== null
+            ? safeNumber(options.max)
+            : Math.max(0, ...values);
+
+        minimum = minimum ?? 0;
+        maximum = maximum ?? 0;
+
+        if (options.axis === "centre" && options.symmetric !== false) {
+            const absoluteMaximum = Math.max(
+                Math.abs(minimum),
+                Math.abs(maximum),
+                1
+            );
+
+            minimum = -absoluteMaximum;
+            maximum = absoluteMaximum;
+        }
+
+        if (minimum === maximum) {
+            if (minimum === 0) {
+                maximum = 1;
+            } else {
+                const padding = Math.abs(minimum) * 0.1 || 1;
+                minimum -= padding;
+                maximum += padding;
+            }
+        }
+
+        const tickTarget = Math.max(
+            2,
+            Number(options.tickCount) || 5
+        );
+
+        const rawStep = (maximum - minimum) / tickTarget;
+        const step = niceStep(rawStep);
+
+        let niceMinimum = Math.floor(minimum / step) * step;
+        let niceMaximum = Math.ceil(maximum / step) * step;
+
+        if (options.min !== null) {
+            niceMinimum = minimum;
+        }
+
+        if (options.max !== null) {
+            niceMaximum = maximum;
+        }
+
+        const ticks = [];
+        const guardLimit = 100;
+        let guard = 0;
+
+        for (
+            let value = niceMinimum;
+            value <= niceMaximum + step / 2 && guard < guardLimit;
+            value += step
+        ) {
+            const rounded = Math.abs(value) < step / 100000
+                ? 0
+                : Number(value.toPrecision(12));
+
+            ticks.push(rounded);
+            guard += 1;
+        }
+
+        return {
+            minimum: niceMinimum,
+            maximum: niceMaximum,
+            ticks
+        };
+    }
+
+    function getFormatter(formatterOption) {
+        if (typeof formatterOption === "function") {
+            return formatterOption;
+        }
+
+        return formatters.get(String(formatterOption))
+            || formatters.get("number");
+    }
+
+    class HorizontalBarChart {
+        constructor(target, options = {}) {
+            this.target = resolveElement(target);
+            this.options = mergeOptions(DEFAULTS, options);
+            this.rows = [];
+            this.payload = null;
+            this.abortController = null;
+            this.destroyed = false;
+
+            this.target.classList.add("sqdip-chart");
+            this.target.setAttribute("aria-live", "polite");
+
+            this.handleResize = debounce(() => {
+                if (!this.destroyed && this.rows.length > 0) {
+                    this.draw();
+                }
+            }, this.options.resizeDebounceMs);
+
+            if (typeof ResizeObserver === "function") {
+                this.resizeObserver = new ResizeObserver(this.handleResize);
+                this.resizeObserver.observe(this.target);
+            } else {
+                window.addEventListener("resize", this.handleResize);
+            }
+        }
+
+        setOptions(options = {}) {
+            this.options = mergeOptions(this.options, options);
+
+            if (this.payload) {
+                this.setData(this.payload);
+            }
+
+            return this;
+        }
+
+        setData(payload) {
+            this.payload = payload;
+
+            const normalised = normalisePayload(
+                payload,
+                this.options
+            );
+
+            this.options = normalised.options;
+            this.rows = normalised.rows;
+            this.draw();
+
+            return this;
+        }
+
+        async load(url, fetchOptions = {}) {
+            if (!url) {
+                throw new Error(
+                    "SQDIPCharts: no graph URL was supplied."
+                );
+            }
+
+            if (this.abortController) {
+                this.abortController.abort();
+            }
+
+            this.abortController = new AbortController();
+
+            this.showStatus(
+                "loading",
+                this.options.loadingMessage
+            );
+
+            try {
+                const {
+                    headers = {},
+                    ...requestOptions
+                } = fetchOptions;
+
+                const response = await fetch(url, {
+                    credentials: "same-origin",
+                    ...requestOptions,
+                    headers: {
+                        Accept: "application/json",
+                        ...headers
+                    },
+                    signal: this.abortController.signal
+                });
+
+                if (!response.ok) {
+                    const responseText = await response.text();
+
+                    throw new Error(
+                        `HTTP ${response.status}: ${
+                            responseText || response.statusText
+                        }`
+                    );
+                }
+
+                const payload = await response.json();
+                this.setData(payload);
+
+                return payload;
+            } catch (error) {
+                if (error.name === "AbortError") {
+                    return null;
+                }
+
+                console.error(
+                    "SQDIPCharts load error:",
+                    error
+                );
+
+                this.showStatus(
+                    "error",
+                    this.options.errorMessage,
+                    error.message
+                );
+
+                throw error;
+            }
+        }
+
+        showStatus(type, message, detail = "") {
+            this.target.replaceChildren();
+            this.target.dataset.state = type;
+
+            const wrapper = document.createElement("div");
+
+            wrapper.className =
+                `sqdip-chart__status sqdip-chart__status--${type}`;
+
+            const messageElement = document.createElement("p");
+
+            messageElement.className =
+                "sqdip-chart__status-message";
+
+            messageElement.textContent = message;
+            wrapper.appendChild(messageElement);
+
+            if (detail) {
+                const detailElement = document.createElement("p");
+
+                detailElement.className =
+                    "sqdip-chart__status-detail";
+
+                detailElement.textContent = detail;
+                wrapper.appendChild(detailElement);
+            }
+
+            this.target.appendChild(wrapper);
+        }
+
+        draw() {
+            if (this.destroyed) {
+                return;
+            }
+
+            if (this.rows.length === 0) {
+                this.showStatus(
+                    "empty",
+                    this.options.emptyMessage
+                );
+
+                return;
+            }
+
+            this.target.dataset.state = "ready";
+            this.target.dataset.axis = this.options.axis;
+            this.target.replaceChildren();
+
+            const width = Math.max(
+                this.target.clientWidth,
+                320
+            );
+
+            const rowHeight = this.options.rowHeight
+                ?? cssNumber(
+                    this.target,
+                    "--sqdip-row-height",
+                    38
+                );
+
+            const topPadding = cssNumber(
+                this.target,
+                "--sqdip-padding-top",
+                this.options.title ? 74 : 44
+            );
+
+            const bottomPadding = cssNumber(
+                this.target,
+                "--sqdip-padding-bottom",
+                58
+            );
+
+            const outerPadding = cssNumber(
+                this.target,
+                "--sqdip-padding-inline",
+                18
+            );
+
+            const valueGap = cssNumber(
+                this.target,
+                "--sqdip-value-gap",
+                8
+            );
+
+            const axisLabelGap = cssNumber(
+                this.target,
+                "--sqdip-axis-label-gap",
+                10
+            );
+
+            const minimumPlotWidth = 120;
+
+            const height = Math.max(
+                this.options.minHeight,
+                topPadding
+                    + bottomPadding
+                    + (this.rows.length * rowHeight)
+            );
+
+            this.target.style.setProperty(
+                "--sqdip-computed-height",
+                `${height}px`
+            );
+
+            const layout = this.calculateLayout({
+                width,
+                height,
+                rowHeight,
+                topPadding,
+                bottomPadding,
+                outerPadding,
+                minimumPlotWidth
+            });
+
+            const scale = calculateScale(
+                this.rows,
+                this.options
+            );
+
+            const formatValue = getFormatter(
+                this.options.formatter
+            );
+
+            const xPosition = value => {
+                const ratio = (
+                    value - scale.minimum
+                ) / (
+                    scale.maximum - scale.minimum
+                );
+
+                return layout.plotLeft
+                    + (ratio * layout.plotWidth);
+            };
+
+            const zeroX = xPosition(0);
+
+            const svg = createSvgElement("svg", {
+                class: "sqdip-chart__svg",
+                viewBox: `0 0 ${width} ${height}`,
+                width: "100%",
+                height,
+                role: "img",
+                "aria-label": this.options.ariaLabel,
+                preserveAspectRatio: "xMidYMin meet"
+            });
+
+            const title = createSvgElement(
+                "title",
+                {},
+                this.options.title
+                    || this.options.ariaLabel
+            );
+
+            svg.appendChild(title);
+
+            if (this.options.title) {
+                svg.appendChild(createSvgElement(
+                    "text",
+                    {
+                        class: "sqdip-chart__title",
+                        x: outerPadding,
+                        y: 28
+                    },
+                    this.options.title
+                ));
+            }
+
+            if (this.options.subtitle) {
+                svg.appendChild(createSvgElement(
+                    "text",
+                    {
+                        class: "sqdip-chart__subtitle",
+                        x: outerPadding,
+                        y: this.options.title ? 50 : 28
+                    },
+                    this.options.subtitle
+                ));
+            }
+
+            const gridGroup = createSvgElement(
+                "g",
+                {
+                    class: "sqdip-chart__grid"
+                }
+            );
+
+            const axisGroup = createSvgElement(
+                "g",
+                {
+                    class: "sqdip-chart__axes"
+                }
+            );
+
+            const barsGroup = createSvgElement(
+                "g",
+                {
+                    class: "sqdip-chart__bars"
+                }
+            );
+
+            const labelsGroup = createSvgElement(
+                "g",
+                {
+                    class: "sqdip-chart__labels"
+                }
+            );
+
+            const valuesGroup = createSvgElement(
+                "g",
+                {
+                    class: "sqdip-chart__values"
+                }
+            );
+
+            scale.ticks.forEach(tick => {
+                const x = xPosition(tick);
+
+                if (this.options.showGrid) {
+                    gridGroup.appendChild(createSvgElement(
+                        "line",
+                        {
+                            class:
+                                `sqdip-chart__grid-line${
+                                    tick === 0
+                                        ? " sqdip-chart__grid-line--zero"
+                                        : ""
+                                }`,
+                            x1: x,
+                            y1: layout.plotTop,
+                            x2: x,
+                            y2: layout.plotBottom
+                        }
+                    ));
+                }
+
+                axisGroup.appendChild(createSvgElement(
+                    "text",
+                    {
+                        class: "sqdip-chart__tick-label",
+                        x,
+                        y: layout.plotBottom + 23,
+                        "text-anchor": "middle"
+                    },
+                    formatValue(tick)
+                ));
+            });
+
+            axisGroup.appendChild(createSvgElement(
+                "line",
+                {
+                    class: "sqdip-chart__x-axis",
+                    x1: layout.plotLeft,
+                    y1: layout.plotBottom,
+                    x2: layout.plotRight,
+                    y2: layout.plotBottom
+                }
+            ));
+
+            if (
+                this.options.showZeroLine
+                && scale.minimum <= 0
+                && scale.maximum >= 0
+            ) {
+                axisGroup.appendChild(createSvgElement(
+                    "line",
+                    {
+                        class: "sqdip-chart__zero-line",
+                        x1: zeroX,
+                        y1: layout.plotTop,
+                        x2: zeroX,
+                        y2: layout.plotBottom
+                    }
+                ));
+            }
+
+            if (this.options.xLabel) {
+                axisGroup.appendChild(createSvgElement(
+                    "text",
+                    {
+                        class: "sqdip-chart__x-label",
+                        x: layout.plotLeft
+                            + (layout.plotWidth / 2),
+                        y: height - 12,
+                        "text-anchor": "middle"
+                    },
+                    this.options.xLabel
+                ));
+            }
+
+            this.rows.forEach((row, rowIndex) => {
+                const rowTop = layout.plotTop
+                    + (rowIndex * rowHeight);
+
+                const centreY = rowTop
+                    + (rowHeight / 2);
+
+                const barHeight = Math.max(
+                    2,
+                    rowHeight
+                        * this.options.barHeightRatio
+                );
+
+                const valueX = xPosition(row.value);
+                const barX = Math.min(zeroX, valueX);
+
+                const barWidth = Math.max(
+                    Math.abs(valueX - zeroX),
+                    row.value === 0 ? 1 : 0
+                );
+
+                const stateClass = row.value < 0
+                    ? "sqdip-chart__bar--negative"
+                    : (
+                        row.value > 0
+                            ? "sqdip-chart__bar--positive"
+                            : "sqdip-chart__bar--zero"
+                    );
+
+                const customClass = row.className
+                    ? ` ${row.className}`
+                    : "";
+
+                const bar = createSvgElement(
+                    "rect",
+                    {
+                        class:
+                            `sqdip-chart__bar ${stateClass}${customClass}`,
+                        x: barX,
+                        y: centreY - (barHeight / 2),
+                        width: barWidth,
+                        height: barHeight,
+                        rx: cssNumber(
+                            this.target,
+                            "--sqdip-bar-radius",
+                            3
+                        ),
+                        tabindex: 0,
+                        "data-row-id": row.id,
+                        "data-value": row.value
+                    }
+                );
+
+                const tooltipText = row.tooltip
+                    ? String(row.tooltip)
+                    : `${row.fullLabel}: ${
+                        formatValue(row.value)
+                    }`;
+
+                bar.appendChild(createSvgElement(
+                    "title",
+                    {},
+                    tooltipText
+                ));
+
+                barsGroup.appendChild(bar);
+
+                this.drawCategoryLabels(
+                    labelsGroup,
+                    {
+                        row,
+                        centreY,
+                        layout,
+                        zeroX,
+                        axisLabelGap
+                    }
+                );
+
+                if (this.options.showValues) {
+                    const valueIsPositive =
+                        row.value >= 0;
+
+                    let textX = valueIsPositive
+                        ? valueX + valueGap
+                        : valueX - valueGap;
+
+                    let anchor = valueIsPositive
+                        ? "start"
+                        : "end";
+
+                    const estimatedTextWidth = Math.max(
+                        28,
+                        formatValue(row.value).length * 7
+                    );
+
+                    if (
+                        valueIsPositive
+                        && textX + estimatedTextWidth
+                            > layout.plotRight
+                    ) {
+                        textX = valueX - valueGap;
+                        anchor = "end";
+                    } else if (
+                        !valueIsPositive
+                        && textX - estimatedTextWidth
+                            < layout.plotLeft
+                    ) {
+                        textX = valueX + valueGap;
+                        anchor = "start";
+                    }
+
+                    valuesGroup.appendChild(createSvgElement(
+                        "text",
+                        {
+                            class:
+                                `sqdip-chart__value ${
+                                    row.value < 0
+                                        ? "sqdip-chart__value--negative"
+                                        : "sqdip-chart__value--positive"
+                                }`,
+                            x: textX,
+                            y: centreY,
+                            "dominant-baseline": "middle",
+                            "text-anchor": anchor
+                        },
+                        row.value === 0
+                            ? this.options.zeroValueText
+                            : formatValue(row.value)
+                    ));
+                }
+            });
+
+            svg.append(
+                gridGroup,
+                barsGroup,
+                axisGroup,
+                labelsGroup,
+                valuesGroup
+            );
+
+            this.target.appendChild(svg);
+        }
+
+        calculateLayout({
+            width,
+            height,
+            rowHeight,
+            topPadding,
+            bottomPadding,
+            outerPadding,
+            minimumPlotWidth
+        }) {
+            const configuredLeftWidth =
+                this.options.leftLabelWidth
+                ?? cssNumber(
+                    this.target,
+                    "--sqdip-left-label-width",
+                    190
+                );
+
+            const configuredRightWidth =
+                this.options.rightLabelWidth
+                ?? cssNumber(
+                    this.target,
+                    "--sqdip-right-label-width",
+                    190
+                );
+
+            const configuredCentreWidth =
+                this.options.centreLabelWidth
+                ?? cssNumber(
+                    this.target,
+                    "--sqdip-centre-label-width",
+                    150
+                );
+
+            let plotLeft = outerPadding;
+            let plotRight = width - outerPadding;
+
+            if (this.options.axis === "left") {
+                plotLeft += configuredLeftWidth;
+            } else if (this.options.axis === "both") {
+                plotLeft += configuredLeftWidth;
+                plotRight -= configuredRightWidth;
+            } else if (this.options.axis === "centre") {
+                /*
+                 * Central labels are drawn over the zero axis.
+                 * Keep the full plot width.
+                 */
+                this.computedCentreLabelWidth =
+                    configuredCentreWidth;
+            }
+
+            if (
+                plotRight - plotLeft
+                < minimumPlotWidth
+            ) {
+                const availableWidth = Math.max(
+                    minimumPlotWidth,
+                    width - (outerPadding * 2)
+                );
+
+                plotLeft = outerPadding
+                    + Math.max(
+                        0,
+                        (
+                            availableWidth
+                            - minimumPlotWidth
+                        ) / 2
+                    );
+
+                plotRight = width - outerPadding;
+            }
+
+            const plotTop = topPadding;
+            const plotBottom = height - bottomPadding;
+
+            return {
+                width,
+                height,
+                rowHeight,
+                plotLeft,
+                plotRight,
+                plotWidth: Math.max(
+                    1,
+                    plotRight - plotLeft
+                ),
+                plotTop,
+                plotBottom
+            };
+        }
+
+        drawCategoryLabels(group, {
+            row,
+            centreY,
+            layout,
+            zeroX,
+            axisLabelGap
+        }) {
+            const commonAttributes = {
+                class: "sqdip-chart__category-label",
+                y: centreY,
+                "dominant-baseline": "middle"
+            };
+
+            if (
+                this.options.axis === "left"
+                || this.options.axis === "both"
+            ) {
+                const leftLabel = createSvgElement(
+                    "text",
+                    {
+                        ...commonAttributes,
+                        x: layout.plotLeft
+                            - axisLabelGap,
+                        "text-anchor": "end"
+                    },
+                    row.label
+                );
+
+                leftLabel.appendChild(createSvgElement(
+                    "title",
+                    {},
+                    row.fullLabel
+                ));
+
+                group.appendChild(leftLabel);
+            }
+
+            if (this.options.axis === "both") {
+                const rightLabel = createSvgElement(
+                    "text",
+                    {
+                        ...commonAttributes,
+                        x: layout.plotRight
+                            + axisLabelGap,
+                        "text-anchor": "start"
+                    },
+                    row.label
+                );
+
+                rightLabel.appendChild(createSvgElement(
+                    "title",
+                    {},
+                    row.fullLabel
+                ));
+
+                group.appendChild(rightLabel);
+            }
+
+            if (this.options.axis === "centre") {
+                const labelWidth =
+                    this.computedCentreLabelWidth
+                    ?? cssNumber(
+                        this.target,
+                        "--sqdip-centre-label-width",
+                        150
+                    );
+
+                const labelHeight = Math.max(
+                    18,
+                    layout.rowHeight * 0.72
+                );
+
+                group.appendChild(createSvgElement(
+                    "rect",
+                    {
+                        class:
+                            "sqdip-chart__centre-label-background",
+                        x: zeroX - (labelWidth / 2),
+                        y: centreY - (labelHeight / 2),
+                        width: labelWidth,
+                        height: labelHeight,
+                        rx: cssNumber(
+                            this.target,
+                            "--sqdip-centre-label-radius",
+                            3
+                        )
+                    }
+                ));
+
+                const centreLabel = createSvgElement(
+                    "text",
+                    {
+                        ...commonAttributes,
+                        class:
+                            "sqdip-chart__category-label "
+                            + "sqdip-chart__category-label--centre",
+                        x: zeroX,
+                        "text-anchor": "middle"
+                    },
+                    row.label
+                );
+
+                centreLabel.appendChild(createSvgElement(
+                    "title",
+                    {},
+                    row.fullLabel
+                ));
+
+                group.appendChild(centreLabel);
+            }
+        }
+
+        destroy() {
+            this.destroyed = true;
+
+            if (this.abortController) {
+                this.abortController.abort();
+            }
+
+            if (this.resizeObserver) {
+                this.resizeObserver.disconnect();
+            } else {
+                window.removeEventListener(
+                    "resize",
+                    this.handleResize
+                );
+            }
+
+            this.target.replaceChildren();
+            instances.delete(this.target);
+        }
+    }
+
+    function create(target, options = {}) {
+        const element = resolveElement(target);
+        const existing = instances.get(element);
+
+        if (existing) {
+            existing.setOptions(options);
+            return existing;
+        }
+
+        const chart = new HorizontalBarChart(
+            element,
+            options
+        );
+
+        instances.set(element, chart);
+
+        return chart;
+    }
+
+    function render(target, payload, options = {}) {
+        return create(
+            target,
+            options
+        ).setData(payload);
+    }
+
+    function load(
+        target,
+        url,
+        options = {},
+        fetchOptions = {}
+    ) {
+        return create(
+            target,
+            options
+        ).load(
+            url,
+            fetchOptions
+        );
+    }
+
+    function mountButtons({
+        target,
+        buttons = "[data-sqdip-chart]",
+        endpointBase = "/api/sqdip/chart/",
+        chartOptions = {},
+        fetchOptions = {},
+        autoLoad = true,
+        activeClass = "is-active",
+        onBeforeLoad = null,
+        onLoaded = null,
+        onError = null
+    } = {}) {
+        const targetElement = resolveElement(target);
+
+        const buttonElements = Array.from(
+            document.querySelectorAll(buttons)
+        );
+
+        const chart = create(
+            targetElement,
+            chartOptions
+        );
+
+        if (buttonElements.length === 0) {
+            console.warn(
+                "SQDIPCharts: no graph buttons were found."
+            );
+        }
+
+        async function loadFromButton(button) {
+            const chartId =
+                button.dataset.sqdipChart;
+
+            const explicitUrl =
+                button.dataset.sqdipUrl;
+
+            const url = explicitUrl
+                || `${endpointBase}${
+                    encodeURIComponent(chartId)
+                }`;
+
+            buttonElements.forEach(item => {
+                const active = item === button;
+
+                item.classList.toggle(
+                    activeClass,
+                    active
+                );
+
+                item.setAttribute(
+                    "aria-pressed",
+                    active ? "true" : "false"
+                );
+            });
+
+            targetElement.dataset.chartId = chartId;
+
+            if (typeof onBeforeLoad === "function") {
+                onBeforeLoad({
+                    chartId,
+                    url,
+                    button,
+                    chart
+                });
+            }
+
+            try {
+                const payload = await chart.load(
+                    url,
+                    fetchOptions
+                );
+
+                if (
+                    payload
+                    && typeof onLoaded === "function"
+                ) {
+                    onLoaded({
+                        chartId,
+                        url,
+                        button,
+                        chart,
+                        payload
+                    });
+                }
+            } catch (error) {
+                if (typeof onError === "function") {
+                    onError({
+                        chartId,
+                        url,
+                        button,
+                        chart,
+                        error
+                    });
+                }
+            }
+        }
+
+        const buttonHandlers = new Map();
+
+        buttonElements.forEach(button => {
+            if (!button.hasAttribute("type")) {
+                button.type = "button";
+            }
+
+            button.setAttribute(
+                "aria-controls",
+                targetElement.id || "sqdip-chart"
+            );
+
+            button.setAttribute(
+                "aria-pressed",
+                "false"
+            );
+
+            const handler = () =>
+                loadFromButton(button);
+
+            buttonHandlers.set(
+                button,
+                handler
+            );
+
+            button.addEventListener(
+                "click",
+                handler
+            );
+        });
+
+        if (
+            autoLoad
+            && buttonElements.length > 0
+        ) {
+            const defaultButton =
+                buttonElements.find(
+                    button => button.hasAttribute(
+                        "data-sqdip-default"
+                    )
+                ) || buttonElements[0];
+
+            loadFromButton(defaultButton);
+        }
+
+        return {
+            chart,
+
+            load: chartId => {
+                const matchingButton =
+                    buttonElements.find(
+                        button =>
+                            button.dataset.sqdipChart
+                            === chartId
+                    );
+
+                if (!matchingButton) {
+                    throw new Error(
+                        "SQDIPCharts: no button is "
+                        + `configured for graph '${chartId}'.`
+                    );
+                }
+
+                return loadFromButton(
+                    matchingButton
+                );
+            },
+
+            destroy: () => {
+                buttonHandlers.forEach(
+                    (handler, button) => {
+                        button.removeEventListener(
+                            "click",
+                            handler
+                        );
+                    }
+                );
+
+                chart.destroy();
+            }
+        };
+    }
+
+    function registerFormatter(name, formatter) {
+        if (
+            !name
+            || typeof formatter !== "function"
+        ) {
+            throw new TypeError(
+                "SQDIPCharts.registerFormatter "
+                + "requires a name and function."
+            );
+        }
+
+        formatters.set(
+            String(name),
+            formatter
+        );
+    }
+
+    global.SQDIPCharts = Object.freeze({
+        version: "1.0.0",
+        create,
+        render,
+        load,
+        mountButtons,
+        registerFormatter
+    });
+})
+(window);

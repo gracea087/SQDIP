@@ -1,0 +1,68 @@
+.sqdip-page {
+    width: 100%;
+    padding: 16px;
+}
+
+.sqdip-page__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.sqdip-page__header h1 {
+    margin: 0;
+}
+
+.sqdip-page__buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.sqdip-page__buttons button {
+    min-height: 38px;
+    padding: 7px 12px;
+    border: 1px solid #aeb8c2;
+    border-radius: 4px;
+    background: #f4f6f8;
+    color: #243b53;
+    cursor: pointer;
+}
+
+.sqdip-page__buttons button:hover,
+.sqdip-page__buttons button.is-active {
+    background: #dceefb;
+    border-color: #1677b8;
+}
+
+/*
+ * Page-specific graph theme.
+ * This is the intended styling method.
+ */
+.sqdip-page__graph {
+    --sqdip-positive-bar: #1677b8;
+    --sqdip-negative-bar: #c83e4d;
+    --sqdip-row-height: 40px;
+    --sqdip-left-label-width: 220px;
+    --sqdip-right-label-width: 180px;
+    --sqdip-centre-label-width: 165px;
+
+    width: 100%;
+    border: 1px solid #d9e2ec;
+    border-radius: 6px;
+}
+
+/*
+ * SQL/API data may return className:
+ * "warning" or "target-met" per row.
+ */
+.sqdip-page__graph .warning {
+    fill: #d9822b;
+}
+
+.sqdip-page__graph .target-met {
+    fill: #2f9e44;
+}

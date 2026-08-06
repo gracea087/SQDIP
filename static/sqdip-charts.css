@@ -1,0 +1,219 @@
+/*
+ * SQDIP Charts default theme.
+ * Override the variables in a page-specific CSS selector instead of editing
+ * the library file whenever possible.
+ */
+
+.sqdip-chart {
+    --sqdip-background: #ffffff;
+    --sqdip-text: #1f2933;
+    --sqdip-muted-text: #52606d;
+    --sqdip-grid: #d9e2ec;
+    --sqdip-axis: #7b8794;
+    --sqdip-zero-line: #323f4b;
+    --sqdip-positive-bar: #1677b8;
+    --sqdip-negative-bar: #c83e4d;
+    --sqdip-zero-bar: #9aa5b1;
+    --sqdip-bar-hover: #0b5f94;
+    --sqdip-centre-label-background: #ffffff;
+    --sqdip-centre-label-border: #cbd2d9;
+    --sqdip-error: #b42318;
+
+    --sqdip-font-family: Arial, Helvetica, sans-serif;
+    --sqdip-title-size: 20px;
+    --sqdip-subtitle-size: 13px;
+    --sqdip-label-size: 13px;
+    --sqdip-value-size: 12px;
+    --sqdip-tick-size: 11px;
+
+    --sqdip-row-height: 38px;
+    --sqdip-left-label-width: 190px;
+    --sqdip-right-label-width: 190px;
+    --sqdip-centre-label-width: 150px;
+    --sqdip-padding-top: 74px;
+    --sqdip-padding-bottom: 58px;
+    --sqdip-padding-inline: 18px;
+    --sqdip-value-gap: 8px;
+    --sqdip-axis-label-gap: 10px;
+    --sqdip-bar-radius: 3px;
+    --sqdip-centre-label-radius: 3px;
+
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    min-height: 280px;
+    height: var(--sqdip-computed-height, auto);
+    overflow: visible;
+    box-sizing: border-box;
+    background: var(--sqdip-background);
+    color: var(--sqdip-text);
+    font-family: var(--sqdip-font-family);
+}
+
+.sqdip-chart *,
+.sqdip-chart *::before,
+.sqdip-chart *::after {
+    box-sizing: border-box;
+}
+
+.sqdip-chart__svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    font-family: var(--sqdip-font-family);
+}
+
+.sqdip-chart__title {
+    fill: var(--sqdip-text);
+    font-size: var(--sqdip-title-size);
+    font-weight: 700;
+}
+
+.sqdip-chart__subtitle {
+    fill: var(--sqdip-muted-text);
+    font-size: var(--sqdip-subtitle-size);
+}
+
+.sqdip-chart__grid-line {
+    stroke: var(--sqdip-grid);
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+}
+
+.sqdip-chart__grid-line--zero {
+    stroke: transparent;
+}
+
+.sqdip-chart__x-axis {
+    stroke: var(--sqdip-axis);
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+}
+
+.sqdip-chart__zero-line {
+    stroke: var(--sqdip-zero-line);
+    stroke-width: 1.5;
+    shape-rendering: crispEdges;
+}
+
+.sqdip-chart__tick-label,
+.sqdip-chart__x-label {
+    fill: var(--sqdip-muted-text);
+    font-size: var(--sqdip-tick-size);
+}
+
+.sqdip-chart__x-label {
+    font-weight: 600;
+}
+
+.sqdip-chart__category-label {
+    fill: var(--sqdip-text);
+    font-size: var(--sqdip-label-size);
+}
+
+.sqdip-chart__category-label--centre {
+    font-weight: 600;
+}
+
+.sqdip-chart__centre-label-background {
+    fill: var(--sqdip-centre-label-background);
+    stroke: var(--sqdip-centre-label-border);
+    stroke-width: 1;
+}
+
+.sqdip-chart__bar {
+    fill: var(--sqdip-positive-bar);
+    cursor: default;
+    transition: opacity 120ms ease, filter 120ms ease;
+}
+
+.sqdip-chart__bar--positive {
+    fill: var(--sqdip-positive-bar);
+}
+
+.sqdip-chart__bar--negative {
+    fill: var(--sqdip-negative-bar);
+}
+
+.sqdip-chart__bar--zero {
+    fill: var(--sqdip-zero-bar);
+}
+
+.sqdip-chart__bar:hover,
+.sqdip-chart__bar:focus {
+    filter: brightness(0.9);
+    outline: none;
+}
+
+.sqdip-chart__value {
+    fill: var(--sqdip-text);
+    font-size: var(--sqdip-value-size);
+    font-weight: 600;
+    pointer-events: none;
+}
+
+.sqdip-chart__value--negative {
+    fill: var(--sqdip-negative-bar);
+}
+
+.sqdip-chart__status {
+    display: grid;
+    place-content: center;
+    min-height: 280px;
+    padding: 24px;
+    text-align: center;
+}
+
+.sqdip-chart__status-message {
+    margin: 0;
+    color: var(--sqdip-muted-text);
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.sqdip-chart__status-detail {
+    max-width: 780px;
+    margin: 8px auto 0;
+    color: var(--sqdip-muted-text);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
+.sqdip-chart__status--error .sqdip-chart__status-message,
+.sqdip-chart__status--error .sqdip-chart__status-detail {
+    color: var(--sqdip-error);
+}
+
+/*
+ * Example button state.
+ * Change this to match the existing SQDIP button styles.
+ */
+[data-sqdip-chart].is-active {
+    box-shadow: inset 0 -3px 0 currentColor;
+}
+
+@media (max-width: 760px) {
+    .sqdip-chart {
+        --sqdip-left-label-width: 125px;
+        --sqdip-right-label-width: 125px;
+        --sqdip-centre-label-width: 110px;
+        --sqdip-row-height: 34px;
+        --sqdip-label-size: 11px;
+        --sqdip-value-size: 10px;
+        --sqdip-tick-size: 10px;
+        --sqdip-padding-inline: 8px;
+    }
+}
+
+@media print {
+    .sqdip-chart {
+        break-inside: avoid;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+
+    .sqdip-chart__bar {
+        transition: none;
+    }
+}

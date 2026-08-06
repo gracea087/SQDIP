@@ -17,6 +17,13 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
+        <link
+    rel="stylesheet"
+    href="{{ url_for(
+        'static',
+        filename='sqdip-charts.css'
+    ) }}"
+>
 
     <link
         rel="icon"
@@ -46,6 +53,10 @@
     src="{{ url_for('static', filename='departmentFilter.js') }}"
 ></script>
 
-{% block extra_scripts %}{% endblock %}
+{% block extra_scripts %}
+<script
+src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js">
+</script>
+{% endblock %}
 </body>
 </html>
