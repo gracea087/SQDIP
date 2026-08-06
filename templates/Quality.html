@@ -8,7 +8,7 @@
 <br>
 <button id="Q2" type="button">Q2</button>
 <br>
-<button id="Q3" type="button">Q3</button>
+<button id="Q3" type="button" data-sqdip-chart="Q3_customer">Q3</button>
 <br>
 <button id="Q6" type="button">Q6</button>
 <br>
@@ -20,4 +20,19 @@
 <br>
 <button id="Q9" type="button">Q9</button>
 </div>
+
+<section
+    id="qualityGraphPanel"
+    class="quality-graph-panel"
+    hidden
+>
+    <div
+        id="qualityGraph"
+        class="quality-graph"
+    ></div>
+</section>
+
+<script src="{{ url_for( 'static', filename='sqdip-charts.js' ) }}"></script>
+
+<script src="{{ url_for('static', filename='quality.js') }}"></script>
 {% endblock %}

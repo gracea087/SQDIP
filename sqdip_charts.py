@@ -210,7 +210,51 @@ CHARTS: dict[str, ChartDefinition] = {
         x_label="Days Since WO Start Date (Scheduled)",
 
         formatter="integer",
-    )
+    ),
+    "Q3_customer": ChartDefinition(
+        sql="""
+        SELECT
+            CONCAT([WONo], ' (', [WOPartNo], ')') AS y,
+            DATEDIFF(DAY,WOSchedFinishDate,GETDATE()) AS x
+        FROM
+            [Pcubed].[dbo].[worksOrder]
+        WHERE
+            (
+                (([Pcubed].[dbo].[worksOrder].WOQtyOS) > 0)
+                AND (([Pcubed].[dbo].[worksOrder].WOJobType) = 'PENDING CUSTOMER')
+            )
+        ORDER BY
+            x ASC;
+        """,
+        title="WO's Pending Customer Query",
+
+        x_label="Days Untill Scheduled Finish",
+
+        formatter="integer",
+    ),
+    "I10_material": ChartDefinition(
+        sql="""
+        SELECT
+            CONCAT([WONo], '|', [WOPartNo]) AS y,
+            DATEDIFF(DAY,GETDATE(),WOSchedStartDate) AS x
+        FROM
+            [Pcubed].[dbo].[worksOrder]
+            LEFT JOIN AllItems ON [Pcubed].[dbo].[worksOrder].WOPartNo = AllItems.PartNo
+        WHERE
+            (
+                (([Pcubed].[dbo].[worksOrder].WOPartNo) NOT LIKE 'PROCEDURES')
+                AND (([Pcubed].[dbo].[worksOrder].WOEarliestStartDate) = '12 / 12 / 2012')
+                AND (([Pcubed].[dbo].[worksOrder].WOStatusDescription) NOT LIKE 'Completed')
+            )
+        ORDER BY
+            x DESC;
+        """,
+        title="Material Only WO (Start Date 12/12/12)",
+
+        x_label="Days Untill Scheduled Start",
+
+        formatter="integer",
+    ),
 }
 
 
