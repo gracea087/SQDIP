@@ -71,7 +71,6 @@ def month_parameters(
 CHARTS: dict[str, ChartDefinition] = {
     "p13_coshh": ChartDefinition(
     sql="""
-        SET LOCK_TIMEOUT 10000;
 
         SELECT
             CAST(
@@ -147,6 +146,70 @@ CHARTS: dict[str, ChartDefinition] = {
     x_label="Days Since WO Start Date (Scheduled)",
 
     formatter="integer",
+    ),
+    "I2b_wip": ChartDefinition(
+        sql="""
+        SELECT 
+            WOPartNo as y, 
+            DATEDIFF(DAY, GETDATE(), WOSchedStartDate) as x
+        FROM [Pcubed].[dbo].[worksOrder]
+        WHERE WOStatusDescription = 'On Hold'
+        order by WOSchedStartDate ASC;
+        """,
+        title="WIP - Works Orders ON-HOLD",
+
+        x_label="Days",
+
+        formatter="integer",
+    ),
+    "I6_location": ChartDefinition(
+        sql="""
+        SELECT TOP (20)
+            LEFT(
+                CONCAT(wo.WONo,' | ',COALESCE(wo.WOJobType, ''),' | ',COALESCE(wo.WOPartNo, '')), 80) AS y,
+                DATEDIFF(DAY,wo.WOSchedStartDate,GETDATE()) AS x
+        FROM [Pcubed].[dbo].[worksOrder] AS wo
+        WHERE wo.WOSchedStartDate IS NOT NULL
+            AND DATEDIFF(DAY,wo.WOSchedStartDate,GETDATE()) > 0
+            AND (wo.WOJobType IS NULL
+            OR (wo.WOJobType NOT LIKE 'PR%'
+            AND wo.WOJobType NOT IN (
+                        'SMT',
+                        'TEST',
+                        'QA',
+                        'CONCOAT',
+                        'SUB CONTRACTOR',
+                        'ENGINEERING WIP',
+                        'KITTING ON HOLD',
+                        'MATERIAL SALES',
+                        'SUB CON - TO BE SENT',
+                        'PENDING CUSTOMER'
+                    )))
+
+            AND wo.WOStatusDescription NOT IN (
+                'Completed',
+                'Total Qty Received',
+                'On Hold'
+            )
+
+            AND wo.WOPartNo NOT LIKE '%FAI REPORT'
+            AND wo.WOPartNo <> 'SMT ATTRITION'
+            AND wo.WOPartNo <> 'ADDITIONAL CHARGE'
+            AND wo.WOPartNo <> 'EXCESS MATERIAL'
+            AND wo.WOPartNo NOT LIKE '%FAIR%'
+            AND wo.WOPartNo <> 'CONSUMABLE ISSUES'
+            AND wo.WOPartNo NOT LIKE '%WRITE-OFF'
+            AND wo.WOPartNo NOT LIKE '%-RETURN'
+            AND wo.WOPartNo NOT LIKE '%-REPAIR'
+
+        ORDER BY
+            X DESC;
+        """,
+        title="Works Orders not in Prod Location (Top 20)",
+
+        x_label="Days Since WO Start Date (Scheduled)",
+
+        formatter="integer",
     )
 }
 
