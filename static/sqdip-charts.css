@@ -278,9 +278,15 @@
 }
 
 
-/* ALL */
+/* ALL LOCATIONS */
 .sqdip-chart-filter-button.filter-all {
     background-color: #4252ad;
+}
+
+
+/* MRB CUSTOMER */
+.sqdip-chart-filter-button.filter-mrb-customer {
+    background-color: #379167;
 }
 
 
@@ -290,29 +296,36 @@
 }
 
 
+/* MRB OVARRO */
+.sqdip-chart-filter-button.filter-mrb-ovarro {
+    background-color: #eb60c8;
+}
+
+
+/* MRB PENDING */
+.sqdip-chart-filter-button.filter-mrb-pending {
+    background-color: #560d64;
+}
+
+
+/* MRB REJECT */
+.sqdip-chart-filter-button.filter-mrb-reject {
+    background-color: #c40a32;
+}
+
+
 /* MRB REWORK */
 .sqdip-chart-filter-button.filter-mrb-rework {
     background-color: #2ac7f7;
 }
 
 
-/* MRB OVARRO */
-.sqdip-chart-filter-button.filter-mrb-ovarro {
-    background-color: #70ad47;
+/* MRB USE AS IS */
+.sqdip-chart-filter-button.filter-mrb-use-as-is {
+    background-color: #40c452;
 }
 
-
-/* MRD REWORK */
-.sqdip-chart-filter-button.filter-mrd-rework {
-    background-color: #a64d79;
-}
-
-/* MRD CUSTOMER */
-.sqdip-chart-filter-button.filter-mrd-customer {
-    background-color: #379167;
-}
-
-/* MRD PENDING */
-.sqdip-chart-filter-button.filter-mrd-pending {
-    background-color: #560d64;
+/* MRB USE AS IS */
+.sqdip-chart-filter-button.filter-mrb-scrap {
+    background-color: #e2ac17;
 }

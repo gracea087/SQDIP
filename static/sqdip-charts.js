@@ -1623,7 +1623,7 @@
     }
 
 
-    function createFilterButton(
+   function createFilterButton(
     label,
     value
 ) {
@@ -1632,24 +1632,19 @@
             "button"
         );
 
-
     button.type =
         "button";
 
 
     /*
-     * Create a unique CSS class
-     * from the filter value.
-     *
-     * Example:
+     * Create unique CSS class
+     * from filter value.
      *
      * MRB OTHER
-     * becomes:
-     * filter-mrb-other
+     * -> filter-mrb-other
      *
      * MRD REWORK
-     * becomes:
-     * filter-mrd-rework
+     * -> filter-mrd-rework
      */
     const uniqueClass =
         value
@@ -1668,25 +1663,8 @@
             : "filter-all";
 
 
-    const uniqueClass =
-    value
-        ? "filter-"
-            + String(value)
-                .trim()
-                .toLowerCase()
-                .replace(
-                    /[^a-z0-9]+/g,
-                    "-"
-                )
-                .replace(
-                    /^-+|-+$/g,
-                    ""
-                )
-        : "filter-all";
-
-
-button.className =
-    `${buttonClass} ${uniqueClass}`;
+    button.className =
+        `${buttonClass} ${uniqueClass}`;
 
 
     button.textContent =
