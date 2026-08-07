@@ -1624,48 +1624,99 @@
 
 
     function createFilterButton(
-        label,
+    label,
+    value
+) {
+    const button =
+        document.createElement(
+            "button"
+        );
+
+
+    button.type =
+        "button";
+
+
+    /*
+     * Create a unique CSS class
+     * from the filter value.
+     *
+     * Example:
+     *
+     * MRB OTHER
+     * becomes:
+     * filter-mrb-other
+     *
+     * MRD REWORK
+     * becomes:
+     * filter-mrd-rework
+     */
+    const uniqueClass =
         value
-    ) {
-        const button =
-            document.createElement(
-                "button"
+            ? "filter-"
+                + String(value)
+                    .trim()
+                    .toLowerCase()
+                    .replace(
+                        /[^a-z0-9]+/g,
+                        "-"
+                    )
+                    .replace(
+                        /^-+|-+$/g,
+                        ""
+                    )
+            : "filter-all";
+
+
+    const uniqueClass =
+    value
+        ? "filter-"
+            + String(value)
+                .trim()
+                .toLowerCase()
+                .replace(
+                    /[^a-z0-9]+/g,
+                    "-"
+                )
+                .replace(
+                    /^-+|-+$/g,
+                    ""
+                )
+        : "filter-all";
+
+
+button.className =
+    `${buttonClass} ${uniqueClass}`;
+
+
+    button.textContent =
+        label;
+
+
+    button.dataset
+        .sqdipFilterValue =
+            value;
+
+
+    button.setAttribute(
+        "aria-pressed",
+        "false"
+    );
+
+
+    button.addEventListener(
+        "click",
+        () => {
+            select(
+                value,
+                button
             );
+        }
+    );
 
 
-        button.type =
-            "button";
-
-        button.className =
-            buttonClass;
-
-        button.textContent =
-            label;
-
-        button.dataset
-            .sqdipFilterValue =
-                value;
-
-
-        button.setAttribute(
-            "aria-pressed",
-            "false"
-        );
-
-
-        button.addEventListener(
-            "click",
-            () => {
-                select(
-                    value,
-                    button
-                );
-            }
-        );
-
-
-        return button;
-    }
+    return button;
+}
 
 
     async function refresh() {

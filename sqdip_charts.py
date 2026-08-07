@@ -437,7 +437,7 @@ CHARTS: dict[str, ChartDefinition] = {
             ORDER BY x DESC;
         """,
 
-        title="GRN Location",
+        title="Stock in MRB Locations",
 
         x_label="Days",
 

@@ -4,4 +4,33 @@
 
 {% block content %}
 <button id="S1" type="button">S1</button>
+
+<script>
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const buttons =
+            document.querySelectorAll(
+                ".button-container button"
+            );
+
+        buttons.forEach(
+            function (button) {
+
+                if (
+                    !button.hasAttribute(
+                        "data-sqdip-chart"
+                    )
+                ) {
+                    button.style.display =
+                        "none";
+                }
+
+            }
+        );
+
+    }
+);
+</script>
 {% endblock %}

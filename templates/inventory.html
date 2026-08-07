@@ -44,6 +44,35 @@
     ></div>
 </section>
 
+<script>
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        const buttons =
+            document.querySelectorAll(
+                ".button-container button"
+            );
+
+        buttons.forEach(
+            function (button) {
+
+                if (
+                    !button.hasAttribute(
+                        "data-sqdip-chart"
+                    )
+                ) {
+                    button.style.display =
+                        "none";
+                }
+
+            }
+        );
+
+    }
+);
+</script>
+
 <script src="{{ url_for( 'static', filename='sqdip-charts.js' ) }}"></script>
 
 <script src="{{ url_for('static', filename='inventory.js') }}"></script>

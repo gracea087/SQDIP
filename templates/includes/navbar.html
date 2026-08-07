@@ -67,19 +67,19 @@
             </label>
 
             <div class="department-select-wrapper">
-                <select
-                    id="department-select"
-                    name="department"
-                    aria-label="Select department"
-                >
-                    <option value="all">All</option>
-                    <option value="com">Com</option>
-                    <option value="eng">Eng</option>
-                    <option value="man">Man</option>
-                    <option value="pur">Pur</option>
-                    <option value="qa">QA</option>
-                </select>
-
+            <select
+                id="department-select"
+                name="department"
+                aria-label="Select department"
+                data-safety-url="{{ url_for('safety') }}"
+            >
+                <option value="all">All</option>
+                <option value="com">Com</option>
+                <option value="eng">Eng</option>
+                <option value="man">Man</option>
+                <option value="pur">Pur</option>
+                <option value="qa">QA</option>
+            </select>
                 <i
                     class="fa fa-angle-down"
                     aria-hidden="true"
@@ -96,4 +96,65 @@
         </li>
       </ul>  
 
+
+      
+      <script>
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+
+            const departmentSelect =
+                document.getElementById(
+                    "department-select"
+                );
+
+            if (!departmentSelect) {
+                return;
+            }
+
+
+            /*
+            * Restore previously selected
+            * department after page reload.
+            */
+            const savedDepartment =
+                localStorage.getItem(
+                    "sqdipDepartment"
+                );
+
+            if (savedDepartment) {
+                departmentSelect.value =
+                    savedDepartment;
+            }
+
+
+            /*
+            * When department changes:
+            *
+            * 1. Save department
+            * 2. Redirect to Safety page
+            */
+            departmentSelect.addEventListener(
+                "change",
+                function () {
+
+                    const department =
+                        this.value;
+
+                    localStorage.setItem(
+                        "sqdipDepartment",
+                        department
+                    );
+
+                    const safetyUrl =
+                        this.dataset.safetyUrl;
+
+                    window.location.href =
+                        safetyUrl;
+                }
+            );
+
+        }
+    );
+    </script>
 </nav>
