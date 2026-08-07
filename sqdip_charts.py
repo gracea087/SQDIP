@@ -45,6 +45,10 @@ class ChartDefinition:
         default_factory=dict
     )
 
+@dataclass(frozen=True)
+class FilterDefinition:
+    sql: str
+
 
 def month_parameters(
     args: Mapping[str, str]
@@ -67,6 +71,60 @@ def month_parameters(
 
     return start_date, end_date
 
+FILTERS: dict[str, FilterDefinition] = {
+
+    "grn_location": FilterDefinition(
+        sql="""
+            SELECT DISTINCT
+                CAST(
+                    GRNLocation AS varchar(255)
+                ) AS value,
+
+                CAST(
+                    GRNLocation AS varchar(255)
+                ) AS label
+
+            FROM [Pcubed].[dbo].[AllLiveGRN]
+
+            WHERE
+                GRNLocation IS NOT NULL
+
+                AND LTRIM(
+                    RTRIM(GRNLocation)
+                ) <> ''
+
+                AND GRNLocation LIKE 'MRB%'
+
+            ORDER BY
+                label;
+        """
+    ),
+
+}
+
+def q2_location_parameters(
+    args: Mapping[str, str]
+) -> tuple[str]:
+    location = (
+        args.get(
+            "location",
+            ""
+        )
+        or ""
+    ).strip()
+
+
+    if location:
+        return (
+            f"%{location}%",
+        )
+
+
+    # Default Q2 display:
+    # show all MR locations.
+    return (
+        "MR%",
+    )
 
 CHARTS: dict[str, ChartDefinition] = {
     "p13_coshh": ChartDefinition(
@@ -255,6 +313,137 @@ CHARTS: dict[str, ChartDefinition] = {
 
         formatter="integer",
     ),
+    "D1a1": ChartDefinition(
+        sql="""
+        SELECT
+            CONCAT([PONum], '/', [PODetItemNum], ' : ', [PODetPart] ,' : ' , [POSuppAddressName],50) AS y,
+            DATEDIFF(DAY,PODetDatePromised,GETDATE()) AS x
+        FROM [Pcubed].[dbo].[AllLivePO]
+        WHERE
+            (
+                (DATEDIFF(DAY,PODetDatePromised,GETDATE())) > 0)
+                AND (([Pcubed].[dbo].[AllLivePO].PODetDatePromised) > '1 / 1 / 2019 ')
+                AND (
+                    ([Pcubed].[dbo].[AllLivePO].PODetDateLatest) NOT LIKE '1 / 1 / 2001 '
+                    AND ([Pcubed].[dbo].[AllLivePO].PODetDateLatest) NOT LIKE '8 / 8 / 2008 '
+                    AND ([Pcubed].[dbo].[AllLivePO].PODetDateLatest) NOT LIKE '9 / 9 / 2009 '
+                    AND ([Pcubed].[dbo].[AllLivePO].PODetDateLatest) NOT LIKE '10 / 10 / 2010 '
+                )
+        ORDER BY x DESC;
+        """,
+        title="Overdue Purchase Orders (Promised)",
+
+        x_label="Days Late",
+
+        formatter="integer",
+    ),
+    "D1b": ChartDefinition(
+        sql="""
+        SELECT
+            LEFT(CONCAT([PONum],'/',[PODetItemNum],' : ',[PODetPart],' : ',[POSuppAddressName]),50) AS y,
+            DATEDIFF(DAY,GETDATE(),[PODetDateReq]) AS x
+        FROM [Pcubed].[dbo].[AllLivePO]
+        WHERE
+            CAST([PODetDatePromised] AS date) = '2081-12-25'
+            OR
+            CAST([PODetDateLatest] AS date) = '2081-12-25'
+        ORDER BY x ASC;
+        """,
+        title="Unkown Delivery Date Purchase Orders",
+
+        x_label="Days Untill PO Required Date",
+
+        formatter="integer",
+    ),
+    "D1c": ChartDefinition(
+        sql="""
+        SELECT
+            LEFT(CONCAT([PONum],'/',[PODetItemNum],' : ',[PODetPart],' : ',[POSuppAddressName]),50) AS y,
+            DATEDIFF(DAY,[PODetDatePromised],GETDATE()) AS x
+        FROM [Pcubed].[dbo].[AllLivePO]
+        WHERE DATEDIFF(DAY,[PODetDatePromised],GETDATE()) > 1
+            AND [PODetDatePromised] > '2019-01-01'
+            AND [PODetDateLatest] = '2008-08-08'
+        ORDER BY x DESC;
+        """,
+        title="Overdue Purchase Orders (Recieved not Booked In)",
+
+        x_label="Days Untill PO Required Date",
+
+        formatter="integer",
+    ),
+    "D1d": ChartDefinition(
+        sql="""
+        SELECT
+            LEFT(CONCAT([PONum], '/',[PODetItemNum],' : ',[PODetPart],' : ',[POSuppAddressName]),50) AS y,
+            DATEDIFF(DAY,[PODetDatePromised],GETDATE()) AS x,
+            5 AS target
+        FROM [Pcubed].[dbo].[AllLivePO]
+        WHERE
+            DATEDIFF(DAY,[PODetDatePromised],GETDATE()) > 0
+            AND [PODetDatePromised] > '2019-01-01'
+            AND [PODetDateLatest] IN ('2008-08-08','2009-09-09','2010-10-10')
+        ORDER BY x DESC;
+        """,
+        title="Overdue Purchase Orders - Confirmed Shipped",
+
+        x_label="Days Late",
+
+        formatter="integer",
+    ),
+    "P6": ChartDefinition(
+        sql="""
+        SELECT DISTINCT TOP (20)
+            CONCAT([PONum], ' / ',[Name],' / ',LEFT([POSuppAddressName], 15)) AS y,
+            DATEDIFF(DAY,[POSentDate],GETDATE()) AS x,
+            0 AS targetStart,
+            7 AS target
+        FROM [Pcubed].[dbo].[AllLivePO]
+        INNER JOIN [Pcubed].[dbo].[employees]
+            ON [Pcubed].[dbo].[AllLivePO].[POBuyer] = [Pcubed].[dbo].[employees].[BadgeNo]
+        WHERE
+            CAST([PODetDatePromised] AS date) NOT IN (
+                '2081-01-04',
+                '2081-12-25'
+            )
+            AND [POSubmitted] = 1
+            AND [POConfirmation] = 0
+            AND [POSentDate] IS NOT NULL
+        ORDER BY x DESC;
+        """,
+        title="PO's waiting Confirmation (Top 20)",
+
+        x_label="Days Since PO Submitted",
+
+        formatter="integer",
+    ),
+    "Q2_grn": ChartDefinition(
+        sql="""
+            SELECT
+                CONCAT(grn.[GRNNo],' <',grn.[GRNLocation],'> ',grn.[GRNPartNo]) AS y,
+                DATEDIFF(DAY,MAX(tr.[TransferDate]),GETDATE()) AS x,
+                7 AS target
+            FROM
+                [Pcubed].[dbo].[AllLiveGRN] AS grn
+            LEFT JOIN [Pcubed].[dbo].[AllGRN_Transfer] AS tr
+                ON grn.[GRNNo]= tr.[TransferGRNNo]
+                AND grn.[GRNLineNo] = tr.[TranferGRNLineNo]
+            WHERE grn.[GRNLocation] LIKE ?
+            GROUP BY
+                grn.[GRNNo],
+                grn.[GRNLocation],
+                grn.[GRNPartNo]
+            ORDER BY x DESC;
+        """,
+
+        title="GRN Location",
+
+        x_label="Days",
+
+        formatter="integer",
+
+        parameters=q2_location_parameters,
+    ),
 }
 
 
@@ -273,6 +462,68 @@ def json_value(value: Any) -> Any:
 @sqdip_charts_bp.get(
     "/api/sqdip/chart/<string:chart_id>"
 )
+
+@sqdip_charts_bp.get(
+    "/api/sqdip/filter/<string:filter_id>"
+)
+def get_sqdip_filter(filter_id: str):
+    definition = FILTERS.get(
+        filter_id
+    )
+
+    if definition is None:
+        return jsonify({
+            "error":
+                "Unknown SQDIP filter.",
+            "filterId":
+                filter_id
+        }), 404
+
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        connection.timeout = 20
+
+        cursor = connection.cursor()
+
+        cursor.execute(
+            definition.sql
+        )
+
+        rows = cursor.fetchall()
+
+        data = []
+
+        for row in rows:
+            data.append({
+                "value": str(row[0]),
+                "label": str(row[1])
+            })
+
+
+        return jsonify({
+            "filterId": filter_id,
+            "data": data
+        })
+
+
+    except Exception as error:
+        return jsonify({
+            "error": str(error),
+            "filterId": filter_id
+        }), 500
+
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if connection is not None:
+            connection.close()
+
 def get_sqdip_chart(chart_id: str):
     """Execute a registered chart query and return y/x graph data."""
 
@@ -342,7 +593,9 @@ def get_sqdip_chart(chart_id: str):
             for optional_key in (
                 "tooltip",
                 "id",
-                "className"
+                "className",
+                "target",
+                "targetStart"
             ):
                 if optional_key in record:
                     item[optional_key] = (

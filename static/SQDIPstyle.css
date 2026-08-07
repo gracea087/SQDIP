@@ -460,21 +460,18 @@ textarea:focus,
 }
 
 
-/*
- * P13 CoSHH graph styling.
- *
- * The chart library automatically places
- * data-chart-id="p13_coshh" on the shared
- * graph target when P13 is selected.
- */
-#productivityGraph[
-    data-chart-id="p13_coshh"
+
+/* /////////////////////////////////// */
+            /* QUALITY */
+/* /////////////////////////////////// */
+#qualityGraph[
+    data-chart-id="Q2_grn"
 ] {
     --sqdip-positive-bar: var(--graph-main);
     --sqdip-negative-bar: var(--graph-negative);
 
-    --sqdip-row-height: 28px;
-    --sqdip-left-label-width: 230px;
+    --sqdip-row-height: 45px;
+    --sqdip-left-label-width: 375px;
 
     --sqdip-label-size: 13px;
     --sqdip-value-size: 12px;
@@ -482,15 +479,15 @@ textarea:focus,
 
 
 @media (max-width: 800px) {
-    .productivity-graph-panel {
+    .quality-graph-panel {
         width: calc(100% - 20px);
         margin: 10px;
         padding: 10px;
     }
 
 
-    #productivityGraph[
-        data-chart-id="p13_coshh"
+    #qualityGraph[
+        data-chart-id="Q2_grn"
     ] {
         --sqdip-row-height: 34px;
         --sqdip-left-label-width: 135px;
@@ -499,6 +496,176 @@ textarea:focus,
     }
 }
 
+#qualityGraph[
+    data-chart-id="Q3_customer"
+] {
+    --sqdip-positive-bar: var(--graph-main);
+    --sqdip-negative-bar: var(--graph-negative);
+
+    --sqdip-row-height: 45px;
+    --sqdip-left-label-width: 375px;
+
+    --sqdip-label-size: 13px;
+    --sqdip-value-size: 12px;
+}
+
+
+@media (max-width: 800px) {
+    .quality-graph-panel {
+        width: calc(100% - 20px);
+        margin: 10px;
+        padding: 10px;
+    }
+
+
+    #qualityGraph[
+        data-chart-id="Q3_customer"
+    ] {
+        --sqdip-row-height: 34px;
+        --sqdip-left-label-width: 135px;
+        --sqdip-label-size: 11px;
+        --sqdip-value-size: 10px;
+    }
+}
+
+/* /////////////////////////////////// */
+            /* DELIVERABLES */
+/* /////////////////////////////////// */
+
+#deliverablesGraph[
+    data-chart-id="D1a1"
+] {
+    --sqdip-positive-bar: var(--graph-main);
+    --sqdip-negative-bar: var(--graph-negative);
+
+    --sqdip-row-height: 45px;
+    --sqdip-left-label-width: 475px;
+
+    --sqdip-label-size: 13px;
+    --sqdip-value-size: 12px;
+}
+
+
+@media (max-width: 800px) {
+    .deliverables-graph-panel {
+        width: calc(100% - 20px);
+        margin: 10px;
+        padding: 10px;
+    }
+
+
+    #deliverablesGraph[
+        data-chart-id="D1a1"
+    ] {
+        --sqdip-row-height: 34px;
+        --sqdip-left-label-width: 250px;
+        --sqdip-label-size: 11px;
+        --sqdip-value-size: 10px;
+    }
+}
+
+#deliverablesGraph[
+    data-chart-id="D1b"
+] {
+    --sqdip-positive-bar: var(--graph-main);
+    --sqdip-negative-bar: var(--graph-negative);
+
+    --sqdip-row-height: 45px;
+    --sqdip-left-label-width: 475px;
+
+    --sqdip-label-size: 13px;
+    --sqdip-value-size: 12px;
+}
+
+
+@media (max-width: 800px) {
+    .deliverables-graph-panel {
+        width: calc(100% - 20px);
+        margin: 10px;
+        padding: 10px;
+    }
+
+
+    #deliverablesGraph[
+        data-chart-id="D1b"
+    ] {
+        --sqdip-row-height: 34px;
+        --sqdip-left-label-width: 250px;
+        --sqdip-label-size: 11px;
+        --sqdip-value-size: 10px;
+    }
+}
+
+#deliverablesGraph[
+    data-chart-id="D1c"
+] {
+    --sqdip-positive-bar: var(--graph-main);
+    --sqdip-negative-bar: var(--graph-negative);
+
+    --sqdip-row-height: 45px;
+    --sqdip-left-label-width: 475px;
+
+    --sqdip-label-size: 13px;
+    --sqdip-value-size: 12px;
+}
+
+
+@media (max-width: 800px) {
+    .deliverables-graph-panel {
+        width: calc(100% - 20px);
+        margin: 10px;
+        padding: 10px;
+    }
+
+
+    #deliverablesGraph[
+        data-chart-id="D1c"
+    ] {
+        --sqdip-row-height: 34px;
+        --sqdip-left-label-width: 250px;
+        --sqdip-label-size: 11px;
+        --sqdip-value-size: 10px;
+    }
+}
+
+#deliverablesGraph[
+    data-chart-id="D1d"
+] {
+    --sqdip-positive-bar: var(--graph-main);
+    --sqdip-negative-bar: var(--graph-negative);
+
+    --sqdip-row-height: 45px;
+    --sqdip-left-label-width: 475px;
+
+    --sqdip-label-size: 13px;
+    --sqdip-value-size: 12px;
+}
+
+
+@media (max-width: 800px) {
+    .deliverables-graph-panel {
+        width: calc(100% - 20px);
+        margin: 10px;
+        padding: 10px;
+    }
+
+
+    #deliverablesGraph[
+        data-chart-id="D1d"
+    ] {
+        --sqdip-row-height: 34px;
+        --sqdip-left-label-width: 250px;
+        --sqdip-label-size: 11px;
+        --sqdip-value-size: 10px;
+    }
+}
+#deliverablesGraph[data-chart-id="D1d"] {
+    --sqdip-target-line: #fd3f6e;
+    --sqdip-target-line-width: 2px;
+}
+/* /////////////////////////////////// */
+            /* INVENTORY */
+/* /////////////////////////////////// */
 
 #inventoryGraph[
     data-chart-id="I2a_wip"
@@ -595,40 +762,6 @@ textarea:focus,
         --sqdip-value-size: 10px;
     }
 }
-
-#inventoryGraph[
-    data-chart-id="Q3_customer"
-] {
-    --sqdip-positive-bar: var(--graph-main);
-    --sqdip-negative-bar: var(--graph-negative);
-
-    --sqdip-row-height: 45px;
-    --sqdip-left-label-width: 375px;
-
-    --sqdip-label-size: 13px;
-    --sqdip-value-size: 12px;
-}
-
-
-@media (max-width: 800px) {
-    .inventory-graph-panel {
-        width: calc(100% - 20px);
-        margin: 10px;
-        padding: 10px;
-    }
-
-
-    #inventoryGraph[
-        data-chart-id="Q3_customer"
-    ] {
-        --sqdip-row-height: 34px;
-        --sqdip-left-label-width: 135px;
-        --sqdip-label-size: 11px;
-        --sqdip-value-size: 10px;
-    }
-}
-
-
 #inventoryGraph[
     data-chart-id="I10_material"
 ] {
@@ -653,6 +786,74 @@ textarea:focus,
 
     #inventoryGraph[
         data-chart-id="I10_material"
+    ] {
+        --sqdip-row-height: 34px;
+        --sqdip-left-label-width: 135px;
+        --sqdip-label-size: 11px;
+        --sqdip-value-size: 10px;
+    }
+}
+
+/* /////////////////////////////////// */
+            /* PRODUCTIVITY */
+/* /////////////////////////////////// */
+
+#productivityGraph[
+    data-chart-id="p13_coshh"
+] {
+    --sqdip-positive-bar: var(--graph-main);
+    --sqdip-negative-bar: var(--graph-negative);
+
+    --sqdip-row-height: 28px;
+    --sqdip-left-label-width: 230px;
+
+    --sqdip-label-size: 13px;
+    --sqdip-value-size: 12px;
+}
+
+
+@media (max-width: 800px) {
+    .productivity-graph-panel {
+        width: calc(100% - 20px);
+        margin: 10px;
+        padding: 10px;
+    }
+
+
+    #productivityGraph[
+        data-chart-id="p13_coshh"
+    ] {
+        --sqdip-row-height: 34px;
+        --sqdip-left-label-width: 135px;
+        --sqdip-label-size: 11px;
+        --sqdip-value-size: 10px;
+    }
+}
+
+#productivityGraph[
+    data-chart-id="P6"
+] {
+    --sqdip-positive-bar: var(--graph-main);
+    --sqdip-negative-bar: var(--graph-negative);
+
+    --sqdip-row-height: 28px;
+    --sqdip-left-label-width: 375px;
+
+    --sqdip-label-size: 13px;
+    --sqdip-value-size: 12px;
+}
+
+
+@media (max-width: 800px) {
+    .productivity-graph-panel {
+        width: calc(100% - 20px);
+        margin: 10px;
+        padding: 10px;
+    }
+
+
+    #productivityGraph[
+        data-chart-id="P6"
     ] {
         --sqdip-row-height: 34px;
         --sqdip-left-label-width: 135px;

@@ -4,15 +4,15 @@
 
 {% block content %}
 <div class="button-container">
-<button id="D1a1" type="button">D1a1</button>
+<button id="D1a1" type="button" data-sqdip-chart="D1a1">D1a1 </button>
 <br>
 <button id="D1a2" type="button">D1a2</button>
 <br>
-<button id="D1b" type="button">D1b</button>
+<button id="D1b" type="button" data-sqdip-chart="D1b">D1b</button>
 <br>
-<button id="D1c" type="button">D1c</button>
+<button id="D1c" type="button" data-sqdip-chart="D1c">D1c</button>
 <br>
-<button id="D1d" type="button">D1d</button>
+<button id="D1d" type="button" data-sqdip-chart="D1d">D1d</button>
 <br>
 <button id="D2" type="button">D2</button>
 <br>
@@ -36,4 +36,19 @@
 <br>
 <button id="D12" type="button">D12</button>
 </div>
+
+<section
+    id="deliverablesGraphPanel"
+    class="deliverables-graph-panel"
+    hidden
+>
+    <div
+        id="deliverablesGraph"
+        class="deliverables-graph"
+    ></div>
+</section>
+
+<script src="{{ url_for( 'static', filename='sqdip-charts.js' ) }}"></script>
+
+<script src="{{ url_for('static', filename='deliverables.js') }}"></script>
 {% endblock %}

@@ -38,6 +38,8 @@
         title: "",
         subtitle: "",
         xLabel: "",
+        targetKey: "target",
+        targetStartKey: "targetStart",
         formatter: "number",
         min: null,
         max: null,
@@ -192,6 +194,12 @@
                     ),
                     fullLabel: String(item[mergedOptions.labelKey] ?? ""),
                     value,
+                    target: safeNumber(
+                        item[mergedOptions.targetKey]
+                    ),
+                    targetStart: safeNumber(
+                        item[mergedOptions.targetStartKey]
+                    ),
                     tooltip: item[mergedOptions.tooltipKey] ?? null,
                     className: escapeClassNames(item[mergedOptions.classKey]),
                     raw: item
@@ -249,7 +257,25 @@
     }
 
     function calculateScale(rows, options) {
-        const values = rows.map(row => row.value);
+        const values = rows.flatMap(row => {
+        const rowValues = [
+            row.value
+        ];
+
+        if (row.target !== null) {
+            rowValues.push(
+                row.target
+            );
+        }
+
+        if (row.targetStart !== null) {
+            rowValues.push(
+                row.targetStart
+            );
+        }
+
+        return rowValues;
+    });
 
         let minimum = options.min !== null
             ? safeNumber(options.min)
@@ -606,7 +632,13 @@
                 this.options.title
                     || this.options.ariaLabel
             );
-
+            
+            const targetsGroup = createSvgElement(
+                "g",
+                {
+                    class: "sqdip-chart__targets"
+                }
+            );
             svg.appendChild(title);
 
             if (this.options.title) {
@@ -689,12 +721,29 @@
                     ));
                 }
 
+                // Bottom X-axis numbers
                 axisGroup.appendChild(createSvgElement(
                     "text",
                     {
-                        class: "sqdip-chart__tick-label",
+                        class:
+                            "sqdip-chart__tick-label "
+                            + "sqdip-chart__tick-label--bottom",
                         x,
                         y: layout.plotBottom + 23,
+                        "text-anchor": "middle"
+                    },
+                    formatValue(tick)
+                ));
+
+                // Top X-axis numbers
+                axisGroup.appendChild(createSvgElement(
+                    "text",
+                    {
+                        class:
+                            "sqdip-chart__tick-label "
+                            + "sqdip-chart__tick-label--top",
+                        x,
+                        y: layout.plotTop - 10,
                         "text-anchor": "middle"
                     },
                     formatValue(tick)
@@ -709,6 +758,20 @@
                     y1: layout.plotBottom,
                     x2: layout.plotRight,
                     y2: layout.plotBottom
+                }
+            ));
+
+            // Top X-axis
+            axisGroup.appendChild(createSvgElement(
+                "line",
+                {
+                    class:
+                        "sqdip-chart__x-axis "
+                        + "sqdip-chart__x-axis--top",
+                    x1: layout.plotLeft,
+                    y1: layout.plotTop,
+                    x2: layout.plotRight,
+                    y2: layout.plotTop
                 }
             ));
 
@@ -730,19 +793,47 @@
             }
 
             if (this.options.xLabel) {
-                axisGroup.appendChild(createSvgElement(
-                    "text",
-                    {
-                        class: "sqdip-chart__x-label",
-                        x: layout.plotLeft
-                            + (layout.plotWidth / 2),
-                        y: height - 12,
-                        "text-anchor": "middle"
-                    },
-                    this.options.xLabel
-                ));
-            }
 
+            const xLabelCentre =
+                layout.plotLeft
+                + (layout.plotWidth / 2);
+
+
+            // Bottom X-axis label
+            axisGroup.appendChild(createSvgElement(
+                "text",
+                {
+                    class:
+                        "sqdip-chart__x-label "
+                        + "sqdip-chart__x-label--bottom",
+
+                    x: xLabelCentre,
+
+                    y: height - 12,
+
+                    "text-anchor": "middle"
+                },
+                this.options.xLabel
+            ));
+
+
+            // Top X-axis label
+            axisGroup.appendChild(createSvgElement(
+                "text",
+                {
+                    class:
+                        "sqdip-chart__x-label "
+                        + "sqdip-chart__x-label--top",
+
+                    x: xLabelCentre,
+
+                    y: layout.plotTop - 32,
+
+                    "text-anchor": "middle"
+                },
+                this.options.xLabel
+            ));
+        }
             this.rows.forEach((row, rowIndex) => {
                 const rowTop = layout.plotTop
                     + (rowIndex * rowHeight);
@@ -758,6 +849,58 @@
 
                 const valueX = xPosition(row.value);
                 const barX = Math.min(zeroX, valueX);
+
+                if (row.target !== null) {
+                    const targetX = xPosition(
+                        row.target
+                    );
+
+                    const targetStartValue =
+                        row.targetStart !== null
+                            ? row.targetStart
+                            : row.value;
+
+                    const targetStartX = xPosition(
+                        targetStartValue
+                    );
+
+                    const lineStartX = Math.min(
+                        targetStartX,
+                        targetX
+                    );
+
+                    const lineEndX = Math.max(
+                        targetStartX,
+                        targetX
+                    );
+                    targetsGroup.appendChild(
+                        createSvgElement(
+                            "line",
+                            {
+                                class:
+                                    "sqdip-chart__target-line",
+                                x1: lineStartX,
+                                y1: centreY,
+                                x2: lineEndX,
+                                y2: centreY
+                            }
+                        )
+                    );
+
+                    targetsGroup.appendChild(
+                        createSvgElement(
+                            "line",
+                            {
+                                class:
+                                    "sqdip-chart__target-marker",
+                                x1: targetX,
+                                y1: centreY - (barHeight / 2),
+                                x2: targetX,
+                                y2: centreY + (barHeight / 2)
+                            }
+                        )
+                    );
+                }
 
                 const barWidth = Math.max(
                     Math.abs(valueX - zeroX),
@@ -878,6 +1021,7 @@
             svg.append(
                 gridGroup,
                 barsGroup,
+                targetsGroup,
                 axisGroup,
                 labelsGroup,
                 valuesGroup
@@ -1329,6 +1473,359 @@
         };
     }
 
+    function mountFilterButtons({
+    container,
+    target,
+    chartId,
+    filterId,
+    parameterName,
+
+    endpointBase =
+        "/api/sqdip/chart/",
+
+    filterEndpointBase =
+        "/api/sqdip/filter/",
+
+    includeAll = true,
+    allLabel = "ALL",
+
+    buttonClass =
+        "sqdip-chart-filter-button",
+
+    activeClass =
+        "is-active",
+
+    fetchOptions = {}
+} = {}) {
+
+    if (
+        !chartId
+        || !filterId
+        || !parameterName
+    ) {
+        throw new Error(
+            "SQDIPCharts: filter "
+            + "configuration is incomplete."
+        );
+    }
+
+
+    const containerElement =
+        resolveElement(
+            container
+        );
+
+    const targetElement =
+        resolveElement(
+            target
+        );
+
+    const chart =
+        create(
+            targetElement
+        );
+
+
+    let selectedValue = "";
+
+
+    function buildChartUrl(
+        value
+    ) {
+        const parameters =
+            new URLSearchParams();
+
+
+        if (
+            value !== null
+            && value !== undefined
+            && String(value).trim() !== ""
+        ) {
+            parameters.set(
+                parameterName,
+                String(value)
+            );
+        }
+
+
+        const query =
+            parameters.toString();
+
+
+        return (
+            `${endpointBase}`
+            + `${encodeURIComponent(chartId)}`
+            + (
+                query
+                    ? `?${query}`
+                    : ""
+            )
+        );
+    }
+
+
+    function setActiveButton(
+        selectedButton
+    ) {
+        const buttons =
+            containerElement.querySelectorAll(
+                "[data-sqdip-filter-value]"
+            );
+
+
+        buttons.forEach(
+            button => {
+                const active =
+                    button ===
+                    selectedButton;
+
+                button.classList.toggle(
+                    activeClass,
+                    active
+                );
+
+                button.setAttribute(
+                    "aria-pressed",
+                    active
+                        ? "true"
+                        : "false"
+                );
+            }
+        );
+    }
+
+
+    async function select(
+        value,
+        button = null
+    ) {
+        selectedValue =
+            value ?? "";
+
+
+        if (button) {
+            setActiveButton(
+                button
+            );
+        }
+
+
+        const url =
+            buildChartUrl(
+                selectedValue
+            );
+
+
+        return chart.load(
+            url,
+            fetchOptions
+        );
+    }
+
+
+    function createFilterButton(
+        label,
+        value
+    ) {
+        const button =
+            document.createElement(
+                "button"
+            );
+
+
+        button.type =
+            "button";
+
+        button.className =
+            buttonClass;
+
+        button.textContent =
+            label;
+
+        button.dataset
+            .sqdipFilterValue =
+                value;
+
+
+        button.setAttribute(
+            "aria-pressed",
+            "false"
+        );
+
+
+        button.addEventListener(
+            "click",
+            () => {
+                select(
+                    value,
+                    button
+                );
+            }
+        );
+
+
+        return button;
+    }
+
+
+    async function refresh() {
+
+        const {
+            headers = {},
+            ...requestOptions
+        } = fetchOptions;
+
+
+        const response =
+            await fetch(
+                (
+                    `${filterEndpointBase}`
+                    + encodeURIComponent(
+                        filterId
+                    )
+                ),
+                {
+                    credentials:
+                        "same-origin",
+
+                    ...requestOptions,
+
+                    headers: {
+                        Accept:
+                            "application/json",
+
+                        ...headers
+                    }
+                }
+            );
+
+
+        if (!response.ok) {
+            const text =
+                await response.text();
+
+            throw new Error(
+                `Filter HTTP `
+                + `${response.status}: `
+                + `${text}`
+            );
+        }
+
+
+        const payload =
+            await response.json();
+
+
+        const rows =
+            Array.isArray(
+                payload.data
+            )
+                ? payload.data
+                : [];
+
+
+        containerElement
+            .replaceChildren();
+
+
+        if (includeAll) {
+            const allButton =
+                createFilterButton(
+                    allLabel,
+                    ""
+                );
+
+            containerElement
+                .appendChild(
+                    allButton
+                );
+
+
+            if (
+                selectedValue === ""
+            ) {
+                setActiveButton(
+                    allButton
+                );
+            }
+        }
+
+
+        rows.forEach(
+            row => {
+
+                const value =
+                    String(
+                        row.value ?? ""
+                    );
+
+                const label =
+                    String(
+                        row.label
+                        ?? value
+                    );
+
+
+                if (!value) {
+                    return;
+                }
+
+
+                const button =
+                    createFilterButton(
+                        label,
+                        value
+                    );
+
+
+                containerElement
+                    .appendChild(
+                        button
+                    );
+
+
+                if (
+                    value ===
+                    selectedValue
+                ) {
+                    setActiveButton(
+                        button
+                    );
+                }
+            }
+        );
+
+
+        containerElement.hidden =
+            false;
+
+
+        return rows;
+    }
+
+
+    return {
+        chart,
+
+        refresh,
+
+        select,
+
+        show: () => {
+            containerElement.hidden =
+                false;
+        },
+
+        hide: () => {
+            containerElement.hidden =
+                true;
+        },
+
+        getSelectedValue:
+            () => selectedValue
+    };
+}
+
     function registerFormatter(name, formatter) {
         if (
             !name
@@ -1347,11 +1844,15 @@
     }
 
     global.SQDIPCharts = Object.freeze({
-        version: "1.0.0",
+        version: "1.1.0",
+
         create,
         render,
         load,
+
         mountButtons,
+        mountFilterButtons,
+
         registerFormatter
     });
 })
