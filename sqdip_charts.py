@@ -422,6 +422,7 @@ CHARTS: dict[str, ChartDefinition] = {
             SELECT
                 CONCAT(grn.[GRNNo],' <',grn.[GRNLocation],'> ',grn.[GRNPartNo]) AS y,
                 DATEDIFF(DAY,MAX(tr.[TransferDate]),GETDATE()) AS x,
+                0 AS targetStart,
                 7 AS target
             FROM
                 [Pcubed].[dbo].[AllLiveGRN] AS grn
@@ -460,10 +461,6 @@ def json_value(value: Any) -> Any:
 
 
 @sqdip_charts_bp.get(
-    "/api/sqdip/chart/<string:chart_id>"
-)
-
-@sqdip_charts_bp.get(
     "/api/sqdip/filter/<string:filter_id>"
 )
 def get_sqdip_filter(filter_id: str):
@@ -473,11 +470,166 @@ def get_sqdip_filter(filter_id: str):
 
     if definition is None:
         return jsonify({
-            "error":
-                "Unknown SQDIP filter.",
-            "filterId":
-                filter_id
+            "error": "Unknown SQDIP filter.",
+            "filterId": filter_id
         }), 404
+
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_db_connection()
+        connection.timeout = 20
+
+        cursor = connection.cursor()
+
+        cursor.execute(
+            definition.sql
+        )
+
+        rows = cursor.fetchall()
+
+        data = []
+
+        for row in rows:
+            data.append({
+                "value": str(row[0]),
+                "label": str(row[1])
+            })
+
+        return jsonify({
+            "filterId": filter_id,
+            "data": data
+        })
+
+    except Exception as error:
+        print(
+            f"SQDIP filter failed: "
+            f"{filter_id}: {error}",
+            flush=True
+        )
+
+        return jsonify({
+            "error": str(error),
+            "filterId": filter_id
+        }), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if connection is not None:
+            connection.close()
+
+
+@sqdip_charts_bp.get(
+    "/api/sqdip/chart/<string:chart_id>"
+)
+def get_sqdip_chart(chart_id: str):
+    """Execute a registered chart query and return y/x graph data."""
+
+    definition = CHARTS.get(chart_id)
+
+    if definition is None:
+        return jsonify({
+            "error": "Unknown SQDIP chart.",
+            "chartId": chart_id
+        }), 404
+
+    parameters = definition.parameters(
+        request.args
+    )
+
+    connection = None
+    cursor = None
+
+    try:
+        print(
+            f"SQDIP chart starting: {chart_id}",
+            flush=True
+        )
+
+        connection = get_db_connection()
+        connection.timeout = 20
+
+        cursor = connection.cursor()
+
+        cursor.execute(
+            definition.sql,
+            *parameters
+        )
+
+        if cursor.description is None:
+            raise RuntimeError(
+                f"Chart '{chart_id}' returned "
+                "no SQL result set."
+            )
+
+        column_names = [
+            column[0]
+            for column in cursor.description
+        ]
+
+        records = [
+            dict(zip(column_names, row))
+            for row in cursor.fetchall()
+        ]
+
+        data = []
+
+        for record in records:
+            item = {
+                "y": str(
+                    record.get("y", "")
+                ),
+                "x": json_value(
+                    record.get("x")
+                ),
+            }
+
+            for optional_key in (
+                "tooltip",
+                "id",
+                "className",
+                "target",
+                "targetStart"
+            ):
+                if optional_key in record:
+                    item[optional_key] = json_value(
+                        record[optional_key]
+                    )
+
+            data.append(item)
+
+        return jsonify({
+            "meta": {
+                "title": definition.title,
+                "xLabel": definition.x_label,
+                "axis": definition.axis,
+                "formatter": definition.formatter,
+                **dict(definition.meta),
+            },
+            "data": data,
+        })
+
+    except Exception as error:
+        print(
+            f"SQDIP chart failed: "
+            f"{chart_id}: {error}",
+            flush=True
+        )
+
+        return jsonify({
+            "error": str(error),
+            "chartId": chart_id
+        }), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if connection is not None:
+            connection.close()
 
 
     connection = None
