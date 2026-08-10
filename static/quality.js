@@ -35,8 +35,8 @@ document.addEventListener(
 
 
         if (
-            typeof SQDIPCharts ===
-            "undefined"
+            typeof SQDIPCharts
+                === "undefined"
         ) {
             console.error(
                 "sqdip-charts.js "
@@ -47,15 +47,41 @@ document.addEventListener(
         }
 
 
+        let activeChartId =
+            null;
+
+
         /*
-         * Keep track of which graph is
-         * currently selected.
+         * Q1 Return / Repair filters.
          */
-        let activeChartId = null;
+        const q1Filters =
+            SQDIPCharts.mountFilterButtons({
+
+                container:
+                    "#qualityGraphFilters",
+
+                target:
+                    "#qualityGraph",
+
+                chartId:
+                    "Q1",
+
+                filterId:
+                    "q1_type",
+
+                parameterName:
+                    "type",
+
+                includeAll:
+                    true,
+
+                allLabel:
+                    "ALL"
+            });
 
 
         /*
-         * Q2 database-driven location filters.
+         * Q2 location filters.
          */
         const q2Filters =
             SQDIPCharts.mountFilterButtons({
@@ -83,43 +109,62 @@ document.addEventListener(
             });
 
 
-        /*
-         * Load the location list from SQL.
-         *
-         * The buttons are created automatically
-         * from the values returned by:
-         *
-         * /api/sqdip/filter/grn_location
-         */
-        q2Filters.refresh()
-            .then(function () {
+        function hideFilters() {
+            q1Filters.hide();
+            q2Filters.hide();
+        }
 
-                /*
-                 * Don't show them unless
-                 * Q2 is currently selected.
-                 */
-                if (
-                    activeChartId
-                    !== "Q2_grn"
-                ) {
+
+        function loadQ1Filters() {
+
+            q1Filters.refresh()
+                .then(function () {
+
+                    if (
+                        activeChartId
+                            === "Q1"
+                    ) {
+                        q1Filters.show();
+                    }
+                })
+                .catch(function (error) {
+
+                    console.error(
+                        "Could not load "
+                        + "Q1 filters:",
+                        error
+                    );
+
+                    q1Filters.hide();
+                });
+        }
+
+
+        function loadQ2Filters() {
+
+            q2Filters.refresh()
+                .then(function () {
+
+                    if (
+                        activeChartId
+                            === "Q2_grn"
+                    ) {
+                        q2Filters.show();
+                    }
+                })
+                .catch(function (error) {
+
+                    console.error(
+                        "Could not load "
+                        + "Q2 filters:",
+                        error
+                    );
+
                     q2Filters.hide();
-                }
-            })
-            .catch(function (error) {
-
-                console.error(
-                    "Could not load "
-                    + "Q2 location filters:",
-                    error
-                );
-
-                q2Filters.hide();
-            });
+                });
+        }
 
 
-        /*
-         * Normal SQDIP graph buttons.
-         */
         SQDIPCharts.mountButtons({
 
             target:
@@ -135,7 +180,6 @@ document.addEventListener(
             autoLoad:
                 false,
 
-
             onBeforeLoad:
                 function ({
                     chartId
@@ -147,15 +191,20 @@ document.addEventListener(
                     graphPanel.hidden =
                         false;
 
-                        // only show filters for applicable graphs
+                    hideFilters();
+
+
                     if (
-                        chartId ===
-                        "Q2_grn"
+                        chartId === "Q1"
                     ) {
-                        q2Filters.show();
+                        loadQ1Filters();
                     }
-                    else {
-                        q2Filters.hide();
+
+                    else if (
+                        chartId
+                            === "Q2_grn"
+                    ) {
+                        loadQ2Filters();
                     }
                 }
         });

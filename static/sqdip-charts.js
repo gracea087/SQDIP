@@ -302,31 +302,46 @@
         return niceFraction * (10 ** exponent);
     }
 
-    function calculateScale(rows, options) {
-        const values = rows.flatMap(row => {
-        const rowValues = [
-            row.value
-        ];
+    function calculateScale(
+        rows,
+        options
+    ) {
+        const values =
+            rows.flatMap(
+                row => {
 
-        if (row.target !== null) {
-            rowValues.push(
-                row.target
-            );
-        }
+                    const rowValues = [
+                        row.value
+                    ];
 
-        if (row.targetStart !== null) {
-            rowValues.push(
-                row.targetStart
-            );
-        }
+                    if (
+                        row.target !== null
+                    ) {
+                        rowValues.push(
+                            row.target
+                        );
+                    }
 
-        if (
-            row.secondaryValue !== null
-        ) {
-            rowValues.push(
-                row.secondaryValue
+                    if (
+                        row.targetStart !== null
+                    ) {
+                        rowValues.push(
+                            row.targetStart
+                        );
+                    }
+
+                    if (
+                        row.secondaryValue !== null
+                    ) {
+                        rowValues.push(
+                            row.secondaryValue
+                        );
+                    }
+
+                    return rowValues;
+                }
             );
-        }
+
 
         const targetBandStart =
             safeNumber(
@@ -338,6 +353,7 @@
                 options.targetBandEnd
             );
 
+
         if (
             targetBandStart !== null
         ) {
@@ -346,6 +362,7 @@
             );
         }
 
+
         if (
             targetBandEnd !== null
         ) {
@@ -353,58 +370,106 @@
                 targetBandEnd
             );
         }
-        return rowValues;
-    });
 
-        let minimum = options.min !== null
-            ? safeNumber(options.min)
-            : Math.min(0, ...values);
 
-        let maximum = options.max !== null
-            ? safeNumber(options.max)
-            : Math.max(0, ...values);
+        let minimum =
+            options.min !== null
+                ? safeNumber(
+                    options.min
+                )
+                : Math.min(
+                    0,
+                    ...values
+                );
+
+        let maximum =
+            options.max !== null
+                ? safeNumber(
+                    options.max
+                )
+                : Math.max(
+                    0,
+                    ...values
+                );
 
         minimum = minimum ?? 0;
         maximum = maximum ?? 0;
 
-        if (options.axis === "centre" && options.symmetric !== false) {
-            const absoluteMaximum = Math.max(
-                Math.abs(minimum),
-                Math.abs(maximum),
-                1
-            );
+        if (
+            options.axis === "centre"
+            && options.symmetric !== false
+        ) {
+            const absoluteMaximum =
+                Math.max(
+                    Math.abs(minimum),
+                    Math.abs(maximum),
+                    1
+                );
 
-            minimum = -absoluteMaximum;
-            maximum = absoluteMaximum;
+            minimum =
+                -absoluteMaximum;
+
+            maximum =
+                absoluteMaximum;
         }
 
         if (minimum === maximum) {
             if (minimum === 0) {
                 maximum = 1;
-            } else {
-                const padding = Math.abs(minimum) * 0.1 || 1;
+            }
+            else {
+                const padding =
+                    Math.abs(minimum)
+                    * 0.1
+                    || 1;
+
                 minimum -= padding;
                 maximum += padding;
             }
         }
 
-        const tickTarget = Math.max(
-            2,
-            Number(options.tickCount) || 5
-        );
+        const tickTarget =
+            Math.max(
+                2,
+                Number(
+                    options.tickCount
+                ) || 5
+            );
 
-        const rawStep = (maximum - minimum) / tickTarget;
-        const step = niceStep(rawStep);
+        const rawStep =
+            (
+                maximum
+                - minimum
+            )
+            / tickTarget;
 
-        let niceMinimum = Math.floor(minimum / step) * step;
-        let niceMaximum = Math.ceil(maximum / step) * step;
+        const step =
+            niceStep(
+                rawStep
+            );
 
-        if (options.min !== null) {
-            niceMinimum = minimum;
+        let niceMinimum =
+            Math.floor(
+                minimum / step
+            ) * step;
+
+        let niceMaximum =
+            Math.ceil(
+                maximum / step
+            ) * step;
+
+        if (
+            options.min !== null
+        ) {
+            niceMinimum =
+                minimum;
         }
 
-        if (options.max !== null) {
-            niceMaximum = maximum;
+        if (
+            options.max !== null
+        ) {
+            niceMaximum =
+                maximum;
         }
 
         const ticks = [];
@@ -412,21 +477,41 @@
         let guard = 0;
 
         for (
-            let value = niceMinimum;
-            value <= niceMaximum + step / 2 && guard < guardLimit;
+            let value =
+                niceMinimum;
+
+            value
+                <= niceMaximum
+                + step / 2
+                && guard
+                < guardLimit;
+
             value += step
         ) {
-            const rounded = Math.abs(value) < step / 100000
-                ? 0
-                : Number(value.toPrecision(12));
+            const rounded =
+                Math.abs(value)
+                    < step / 100000
+                    ? 0
+                    : Number(
+                        value.toPrecision(
+                            12
+                        )
+                    );
 
-            ticks.push(rounded);
+            ticks.push(
+                rounded
+            );
+
             guard += 1;
         }
 
         return {
-            minimum: niceMinimum,
-            maximum: niceMaximum,
+            minimum:
+                niceMinimum,
+
+            maximum:
+                niceMaximum,
+
             ticks
         };
     }
@@ -1385,12 +1470,24 @@
 
            svg.append(
                 gridGroup,
-                rowSeparatorsGroup,
+
+                // Blue SO Open bars
                 barsGroup,
+
+                // Cream SO Due bars on top
+                secondaryBarsGroup,
+
+                // Red 0-30 target box
+                targetBandGroup,
+
                 targetsGroup,
                 axisGroup,
                 labelsGroup,
                 valuesGroup,
+
+                // Numbers displayed inside cream bars
+                secondaryValuesGroup,
+
                 rightValuesGroup
             );
 
@@ -1939,24 +2036,25 @@
             svg.append(
                 gridGroup,
 
-                targetBandGroup,
-
+                // Blue SO Open bars
                 barsGroup,
 
+                // Cream SO Due bars on top
                 secondaryBarsGroup,
 
+                // Red 0-30 target box
+                targetBandGroup,
+
                 targetsGroup,
-
                 axisGroup,
-
                 labelsGroup,
-
                 valuesGroup,
 
+                // Numbers displayed inside cream bars
                 secondaryValuesGroup,
 
                 rightValuesGroup
-            );
+);
 
             this.target.appendChild(
                 svg

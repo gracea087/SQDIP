@@ -372,3 +372,22 @@
 
     pointer-events: none;
 }
+
+.sqdip-chart__secondary-bar {
+    fill: #fffcc4;
+    stroke: #111111;
+    stroke-width: 1px;
+}
+
+.sqdip-chart__secondary-value {
+    fill: #111111;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.sqdip-chart__target-band {
+    fill: none;
+    stroke: #ff0000;
+    stroke-width: 4px;
+    pointer-events: none;
+}

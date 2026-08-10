@@ -84,7 +84,6 @@ FILTERS: dict[str, FilterDefinition] = {
                 ) AS label
 
             FROM [Pcubed].[dbo].[AllLiveGRN]
-
             WHERE
                 GRNLocation IS NOT NULL
 
@@ -125,36 +124,7 @@ FILTERS: dict[str, FilterDefinition] = {
 
 }
 
-FILTERS: dict[str, FilterDefinition] = {
 
-    "grn_location": FilterDefinition(
-        sql="""
-            SELECT DISTINCT
-                CAST(
-                    GRNLocation AS varchar(255)
-                ) AS value,
-
-                CAST(
-                    GRNLocation AS varchar(255)
-                ) AS label
-
-            FROM [Pcubed].[dbo].[AllLiveGRN]
-
-            WHERE
-                GRNLocation IS NOT NULL
-
-                AND LTRIM(
-                    RTRIM(GRNLocation)
-                ) <> ''
-
-                AND GRNLocation LIKE 'MRB%'
-
-            ORDER BY
-                label;
-        """
-    ),
-
-}
 
 def q2_location_parameters(
     args: Mapping[str, str]
@@ -193,17 +163,14 @@ def q1_type_parameters(
 
     if type_ncr == "RETURN":
         return (
-            "%-RETURN",
+            "%-RETURN%",
         )
 
     if type_ncr == "REPAIR":
         return (
-            "%-REPAIR",
+            "%-REPAIR%",
         )
 
-    # ALL:
-    # the CTE already limits the records
-    # to RETURN or REPAIR.
     return (
         "%",
     )
@@ -724,127 +691,48 @@ CHARTS: dict[str, ChartDefinition] = {
     ),
     "Q1": ChartDefinition(
         sql="""
-            WITH Qry_Exp_Q1_AllReturnRepair AS
-            (
-                SELECT
-                    so.SOLinePartNo,
+        WITH Qry_Exp_Q1_AllReturnRepair AS
+        (SELECT RIGHT(so.SOLinePartNo,6) AS Type,
+                so.SOLinePartNo,
+                ai.PartDefCust AS Customer,
+                wo.WONo,
+                wo.WOJobType AS Location,
+                so.SONo,
+                so.SOLineNo,
+                so.SOLineQty - so.SOLineShipQty AS SOOSQty,
+                DATEDIFF(DAY,CAST(so.SODate AS date),CAST(GETDATE() AS date)) AS SOOpenDays,
+                DATEDIFF(DAY,CAST(GETDATE() AS date),CAST(so.SOLinePromisedDate AS date)) AS SODueDays,
+                wo.WONotes,
+                so.SODescription
 
-                    wo.WONo,
+            FROM [Pcubed].[dbo].[AllSO] AS so
 
-                    wo.WOJobType
-                        AS Location,
-
-                    so.SONo,
-
-                    so.SOLineNo,
-
-                    so.SOLineQty
-                        - so.SOLineShipQty
-                        AS SOOSQty,
-
-                    DATEDIFF(
-                        DAY,
-                        CAST(
-                            so.SODate AS date
-                        ),
-                        CAST(
-                            GETDATE() AS date
-                        )
-                    ) AS SOOpenDays,
-
-                    DATEDIFF(
-                        DAY,
-                        CAST(
-                            GETDATE() AS date
-                        ),
-                        CAST(
-                            so.SOLinePromisedDate
-                            AS date
-                        )
-                    ) AS SODueDays,
-
-                    wo.WONotes,
-
-                    so.SODescription
-
-                FROM
-                    [Pcubed].[dbo].[AllSO]
-                        AS so
-
-                LEFT JOIN
-                    [Pcubed].[dbo].[AllWO]
-                        AS wo
-
-                    ON so.SOLineNo
-                        = wo.WOLineNo
-
-                    AND so.SOLinePartNo
-                        = wo.WOPartNo
-
-                    AND so.SONo
-                        = wo.WOSalesOrder
-
-                WHERE
-                    (
-                        so.SOLinePartNo
-                            LIKE '%-RETURN'
-
-                        OR so.SOLinePartNo
-                            LIKE '%-REPAIR'
-                    )
-
-                    AND so.SOLineStatus
-                        <> 50
-
-                    AND so.SOLineShipQty
-                        < so.SOLineQty
-
-                    AND
-                    (
-                        so.SODescription
-                            <> 'On Hold'
-
-                        OR so.SODescription
-                            IS NULL
-                    )
-            )
-
-            SELECT
-                CONCAT(
-                    SONo,
-                    '/',
-                    SOLineNo,
-                    ' : (WO-',
-                    WONo,
-                    ') ',
-                    LEFT(
-                        SOLinePartNo,
-                        18
-                    ),
-                    ' : ',
-                    SOOSQty
-                ) AS y,
-
-                SOOpenDays AS x,
-
-                SODueDays
-                    AS secondaryValue
-
-            FROM
-                Qry_Exp_Q1_AllReturnRepair
+            LEFT JOIN [Pcubed].[dbo].[worksOrder] AS wo
+                ON so.SOLineNo = wo.WOLineNo
+                AND so.SOLinePartNo = wo.WOPartNo
+                AND so.SONo  = wo.WOSalesOrder
+            LEFT JOIN [Pcubed].[dbo].[allItems] AS ai
+            ON ai.PartNo = so.SOLinePartNo
 
             WHERE
-                (
-                    Location
-                        <> 'PENDING CUSTOMER'
+                (so.SOLinePartNo LIKE '%-RETURN' OR so.SOLinePartNo LIKE '%-REPAIR')
+                AND so.SOLineStatus <> 50
+                AND so.SOLineShipQty < so.SOLineQty
+                AND (so.SODescription <> 'On Hold' OR so.SODescription IS NULL))
 
-                    OR Location IS NULL
-                )
+        SELECT CONCAT(SONo,'/',SOLineNo,' : (WO-',
+                COALESCE(CAST(WONo AS varchar(30)),''),') ',
+                LTRIM(RTRIM(SOLinePartNo)),
+                CASE WHEN NULLIF(LTRIM(RTRIM(Customer)),'') IS NOT NULL
+                    THEN CONCAT(' - ',LTRIM(RTRIM(Customer)))ELSE '' END,' : ',SOOSQty) AS y,
+            SOOpenDays AS x,
+            SODueDays AS secondaryValue
 
-                AND SOLinePartNo LIKE ?
+        FROM Qry_Exp_Q1_AllReturnRepair
+        WHERE (Location <> 'PENDING CUSTOMER' OR Location IS NULL)
+            AND SOLinePartNo LIKE ?
 
-            ORDER BY
-                SOOpenDays DESC;
+        ORDER BY SOOpenDays DESC;
         """,
 
         title=
