@@ -66,7 +66,12 @@
         sort: "none",             // none | ascending | descending | label
         zeroValueText: "0",
         maxLabelCharacters: 80,
-        resizeDebounceMs: 80
+        resizeDebounceMs: 80,
+        rightValueKey: "rightValue",
+        rightValueFormatter: "number",
+        rightValueWidth: null,
+        rightValueLabel: "",
+        showRowSeparators: false
     });
 
     formatters.set("number", value => new Intl.NumberFormat("en-GB", {
@@ -88,6 +93,19 @@
     formatters.set("minutes", value => `${new Intl.NumberFormat("en-GB", {
         maximumFractionDigits: 0
     }).format(value)} min`);
+
+    formatters.set(
+    "currency",
+    value => new Intl.NumberFormat(
+        "en-GB",
+        {
+            style: "currency",
+            currency: "GBP",
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }
+    ).format(value)
+);
 
     function resolveElement(target) {
         if (target instanceof Element) {
@@ -201,8 +219,15 @@
                         item[mergedOptions.targetStartKey]
                     ),
                     tooltip: item[mergedOptions.tooltipKey] ?? null,
-                    className: escapeClassNames(item[mergedOptions.classKey]),
-                    raw: item
+                    className: escapeClassNames(
+                        item[mergedOptions.classKey]
+                    ),
+
+                    raw: item,
+
+                    rightValue: safeNumber(
+                        item[mergedOptions.rightValueKey]
+                    ),
                 };
             })
             .filter(Boolean);
@@ -533,6 +558,12 @@
                 320
             );
 
+            const hasRightValues =
+                this.rows.some(
+                    row =>
+                        row.rightValue !== null
+                );
+
             const rowHeight = this.options.rowHeight
                 ?? cssNumber(
                     this.target,
@@ -591,7 +622,8 @@
                 topPadding,
                 bottomPadding,
                 outerPadding,
-                minimumPlotWidth
+                minimumPlotWidth,
+                hasRightValues
             });
 
             const scale = calculateScale(
@@ -602,6 +634,12 @@
             const formatValue = getFormatter(
                 this.options.formatter
             );
+
+            const formatRightValue =
+                getFormatter(
+                    this.options
+                        .rightValueFormatter
+                );
 
             const xPosition = value => {
                 const ratio = (
@@ -672,6 +710,15 @@
                 }
             );
 
+            const rowSeparatorsGroup =
+                createSvgElement(
+                    "g",
+                    {
+                        class:
+                            "sqdip-chart__row-separators"
+                    }
+                );
+
             const axisGroup = createSvgElement(
                 "g",
                 {
@@ -699,6 +746,15 @@
                     class: "sqdip-chart__values"
                 }
             );
+
+            const rightValuesGroup =
+                createSvgElement(
+                    "g",
+                    {
+                        class:
+                            "sqdip-chart__right-values"
+                    }
+                );
 
             scale.ticks.forEach(tick => {
                 const x = xPosition(tick);
@@ -840,6 +896,70 @@
 
                 const centreY = rowTop
                     + (rowHeight / 2);
+
+                /*
+                * Optional horizontal line
+                * separating each graph row.
+                */
+                if (
+                    this.options.showRowSeparators
+                    && rowIndex < this.rows.length - 1
+                ) {
+                    const separatorY =
+                        rowTop + rowHeight;
+
+                    rowSeparatorsGroup.appendChild(
+                        createSvgElement(
+                            "line",
+                            {
+                                class:
+                                    "sqdip-chart__row-separator",
+
+                                x1:
+                                    outerPadding,
+
+                                y1:
+                                    separatorY,
+
+                                x2:
+                                    width - outerPadding,
+
+                                y2:
+                                    separatorY
+                            }
+                        )
+                    );
+                }
+
+                if (row.rightValue !== null) {
+
+                    rightValuesGroup.appendChild(
+                        createSvgElement(
+                            "text",
+                            {
+                                class:
+                                    "sqdip-chart__right-value",
+
+                                x:
+                                    width
+                                    - outerPadding,
+
+                                y:
+                                    centreY,
+
+                                "dominant-baseline":
+                                    "middle",
+
+                                "text-anchor":
+                                    "end"
+                            },
+
+                            formatRightValue(
+                                row.rightValue
+                            )
+                        )
+                    );
+                }
 
                 const barHeight = Math.max(
                     2,
@@ -1018,13 +1138,15 @@
                 }
             });
 
-            svg.append(
+           svg.append(
                 gridGroup,
+                rowSeparatorsGroup,
                 barsGroup,
                 targetsGroup,
                 axisGroup,
                 labelsGroup,
-                valuesGroup
+                valuesGroup,
+                rightValuesGroup
             );
 
             this.target.appendChild(svg);
@@ -1037,8 +1159,17 @@
             topPadding,
             bottomPadding,
             outerPadding,
-            minimumPlotWidth
+            minimumPlotWidth,
+            hasRightValues
         }) {
+
+            const configuredRightValueWidth =
+                this.options.rightValueWidth
+                ?? cssNumber(
+                    this.target,
+                    "--sqdip-right-value-width",
+                    120
+                );
             const configuredLeftWidth =
                 this.options.leftLabelWidth
                 ?? cssNumber(
@@ -1065,6 +1196,10 @@
 
             let plotLeft = outerPadding;
             let plotRight = width - outerPadding;
+            if (hasRightValues) {
+                plotRight -=
+                    configuredRightValueWidth;
+            }
 
             if (this.options.axis === "left") {
                 plotLeft += configuredLeftWidth;

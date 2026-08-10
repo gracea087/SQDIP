@@ -445,6 +445,44 @@ CHARTS: dict[str, ChartDefinition] = {
 
         parameters=q2_location_parameters,
     ),
+    "D4": ChartDefinition(
+        sql="""
+            WITH Qry_RiskOrderPendAppr AS
+            (SELECT po.PONum, po.PODetItemNum, po.POSuppAddressName, MIN(po.PODetDateReq) AS FirstOfPODetDateReq,po.PODetDatePromised,
+                SUM(po.PODetQtyReq  * po.PODetUnitPrice) AS PoValue,emp.Name
+                FROM [Pcubed].[dbo].[AllLivePO] AS po
+            INNER JOIN [Pcubed].[dbo].[employees] AS emp ON po.POBuyer = emp.BadgeNo
+            WHERE CAST(po.PODetDatePromised AS date) = '2081-04-01'
+            GROUP BY po.PONum, po.PODetItemNum, po.POSuppAddressName, po.PODetDatePromised, emp.Name )
+
+            SELECT LEFT(CONCAT(PONum,'/',PODetItemNum,' # ',Name, ' # ',POSuppAddressName),50) AS y,
+            DATEDIFF(DAY, GETDATE(), FirstOfPODetDateReq) AS x,
+            PoValue AS rightValue
+            FROM Qry_RiskOrderPendAppr
+
+            ORDER BY x ASC;
+        """,
+
+        title=
+            "Risk Orders Pending Approval",
+
+        x_label=
+            "Days Until PO Required Date",
+
+        formatter=
+            "integer",
+
+        meta={
+            "rightValueFormatter":
+                "currency",
+
+            "rightValueLabel":
+                "PO Value",
+            
+            "showRowSeparators":
+            True
+        },
+    ),
 }
 
 
@@ -592,7 +630,8 @@ def get_sqdip_chart(chart_id: str):
                 "id",
                 "className",
                 "target",
-                "targetStart"
+                "targetStart",
+                "rightValue"
             ):
                 if optional_key in record:
                     item[optional_key] = json_value(

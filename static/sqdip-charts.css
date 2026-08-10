@@ -329,3 +329,20 @@
 .sqdip-chart-filter-button.filter-mrb-scrap {
     background-color: #e2ac17;
 }
+
+.sqdip-chart {
+    --sqdip-right-value-width: 130px;
+}
+
+
+.sqdip-chart__right-value {
+    font-size: 13px;
+    font-weight: 600;
+    fill: #222222;
+}
+
+.sqdip-chart__row-separator {
+    stroke: #d6d6d6;
+    stroke-width: 1px;
+    opacity: 0.65;
+}
