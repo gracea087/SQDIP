@@ -70,6 +70,60 @@ def month_parameters(
     )
 
     return start_date, end_date
+FILTERS: dict[str, FilterDefinition] = {
+
+    "grn_location": FilterDefinition(
+        sql="""
+            SELECT DISTINCT
+                CAST(
+                    GRNLocation AS varchar(255)
+                ) AS value,
+
+                CAST(
+                    GRNLocation AS varchar(255)
+                ) AS label
+
+            FROM [Pcubed].[dbo].[AllLiveGRN]
+
+            WHERE
+                GRNLocation IS NOT NULL
+
+                AND LTRIM(
+                    RTRIM(GRNLocation)
+                ) <> ''
+
+                AND GRNLocation LIKE 'MRB%'
+
+            ORDER BY
+                label;
+        """
+    ),
+
+    "q1_type": FilterDefinition(
+        sql="""
+            SELECT
+                value,
+                label
+
+            FROM
+            (
+                VALUES
+                    (
+                        'RETURN',
+                        'RETURN'
+                    ),
+                    (
+                        'REPAIR',
+                        'REPAIR'
+                    )
+            ) AS filters(
+                value,
+                label
+            );
+        """
+    ),
+
+}
 
 FILTERS: dict[str, FilterDefinition] = {
 
@@ -124,6 +178,34 @@ def q2_location_parameters(
     # show all MR locations.
     return (
         "MR%",
+    )
+def q1_type_parameters(
+    args: Mapping[str, str]
+) -> tuple[str]:
+
+    type_ncr = (
+        args.get(
+            "type",
+            ""
+        )
+        or ""
+    ).strip().upper()
+
+    if type_ncr == "RETURN":
+        return (
+            "%-RETURN",
+        )
+
+    if type_ncr == "REPAIR":
+        return (
+            "%-REPAIR",
+        )
+
+    # ALL:
+    # the CTE already limits the records
+    # to RETURN or REPAIR.
+    return (
+        "%",
     )
 
 CHARTS: dict[str, ChartDefinition] = {
@@ -642,137 +724,156 @@ CHARTS: dict[str, ChartDefinition] = {
     ),
     "Q1": ChartDefinition(
         sql="""
-        WITH Qry_Exp_Q1_AllReturnRepair AS
-        (
-            SELECT
-                RIGHT(
+            WITH Qry_Exp_Q1_AllReturnRepair AS
+            (
+                SELECT
                     so.SOLinePartNo,
-                    6
-                ) AS Type,
 
-                so.SOLinePartNo,
+                    wo.WONo,
 
-                wo.WONo,
+                    wo.WOJobType
+                        AS Location,
 
-                wo.WOJobType AS Location,
+                    so.SONo,
 
-                so.SONo,
+                    so.SOLineNo,
 
-                so.SOLineNo,
+                    so.SOLineQty
+                        - so.SOLineShipQty
+                        AS SOOSQty,
 
-                so.SOLineQty
-                    - so.SOLineShipQty
-                    AS SOOSQty,
+                    DATEDIFF(
+                        DAY,
+                        CAST(
+                            so.SODate AS date
+                        ),
+                        CAST(
+                            GETDATE() AS date
+                        )
+                    ) AS SOOpenDays,
 
-                DATEDIFF(
-                    DAY,
-                    CAST(so.SODate AS date),
-                    CAST(GETDATE() AS date)
-                ) AS SOOpenDays,
+                    DATEDIFF(
+                        DAY,
+                        CAST(
+                            GETDATE() AS date
+                        ),
+                        CAST(
+                            so.SOLinePromisedDate
+                            AS date
+                        )
+                    ) AS SODueDays,
 
-                30 AS Target,
+                    wo.WONotes,
 
-                DATEDIFF(
-                    DAY,
-                    CAST(GETDATE() AS date),
-                    CAST(
-                        so.SOLinePromisedDate
-                        AS date
+                    so.SODescription
+
+                FROM
+                    [Pcubed].[dbo].[AllSO]
+                        AS so
+
+                LEFT JOIN
+                    [Pcubed].[dbo].[AllWO]
+                        AS wo
+
+                    ON so.SOLineNo
+                        = wo.WOLineNo
+
+                    AND so.SOLinePartNo
+                        = wo.WOPartNo
+
+                    AND so.SONo
+                        = wo.WOSalesOrder
+
+                WHERE
+                    (
+                        so.SOLinePartNo
+                            LIKE '%-RETURN'
+
+                        OR so.SOLinePartNo
+                            LIKE '%-REPAIR'
                     )
-                ) AS SODueDays,
 
-                wo.WONotes,
+                    AND so.SOLineStatus
+                        <> 50
 
-                so.SODescription
+                    AND so.SOLineShipQty
+                        < so.SOLineQty
+
+                    AND
+                    (
+                        so.SODescription
+                            <> 'On Hold'
+
+                        OR so.SODescription
+                            IS NULL
+                    )
+            )
+
+            SELECT
+                CONCAT(
+                    SONo,
+                    '/',
+                    SOLineNo,
+                    ' : (WO-',
+                    WONo,
+                    ') ',
+                    LEFT(
+                        SOLinePartNo,
+                        18
+                    ),
+                    ' : ',
+                    SOOSQty
+                ) AS y,
+
+                SOOpenDays AS x,
+
+                SODueDays
+                    AS secondaryValue
 
             FROM
-                [Pcubed].[dbo].[AllSO] AS so
-
-            LEFT JOIN
-                [Pcubed].[dbo].[AllWO] AS wo
-
-                ON so.SOLineNo
-                    = wo.WOLineNo
-
-                AND so.SOLinePartNo
-                    = wo.WOPartNo
-
-                AND so.SONo
-                    = wo.WOSalesOrder
+                Qry_Exp_Q1_AllReturnRepair
 
             WHERE
                 (
-                    so.SOLinePartNo
-                        LIKE '%-RETURN'
+                    Location
+                        <> 'PENDING CUSTOMER'
 
-                    OR so.SOLinePartNo
-                        LIKE '%-REPAIR'
+                    OR Location IS NULL
                 )
 
-                AND so.SOLineStatus <> 50
+                AND SOLinePartNo LIKE ?
 
-                AND so.SOLineShipQty
-                    < so.SOLineQty
-
-                AND
-                (
-                    so.SODescription
-                        <> 'On Hold'
-
-                    OR so.SODescription
-                        IS NULL
-                )
-        )
-
-        SELECT
-            CONCAT(
-                SONo,
-                '/',
-                SOLineNo,
-                ' : (WO-',
-                WONo,
-                ') ',
-                LEFT(
-                    SOLinePartNo,
-                    18
-                ),
-                ' : ',
-                SOOSQty
-            ) AS y,
-
-            SOOpenDays AS x,
-
-            30 AS target,
-
-            SODueDays,
-
-            Location
-
-        FROM
-            Qry_Exp_Q1_AllReturnRepair
-
-        WHERE
-            (
-                Location
-                    <> 'PENDING CUSTOMER'
-
-                OR Location IS NULL
-            )
-
-            AND SOLinePartNo LIKE ?
-
-        ORDER BY
-            SOOpenDays DESC;
+            ORDER BY
+                SOOpenDays DESC;
         """,
+
         title=
-            "Return And Repair WO's (Excl. SO on Hold)",
+            "Return And Repair WO's "
+            "(Excl. SO On Hold)",
 
         x_label=
-            "So Open",
+            "Days",
 
         formatter=
             "integer",
-    ),    
+
+        parameters=
+            q1_type_parameters,
+
+        meta={
+            "secondaryValueFormatter":
+                "integer",
+
+            "secondaryValueLabel":
+                "SO Due (Days)",
+
+            "targetBandStart":
+                0,
+
+            "targetBandEnd":
+                30
+        },
+    ),
 }
 
 
@@ -921,7 +1022,8 @@ def get_sqdip_chart(chart_id: str):
                 "className",
                 "target",
                 "targetStart",
-                "rightValue"
+                "rightValue",
+                "secondaryValue"
             ):
                 if optional_key in record:
                     item[optional_key] = json_value(
@@ -1076,7 +1178,9 @@ def get_sqdip_chart(chart_id: str):
                 "id",
                 "className",
                 "target",
-                "targetStart"
+                "targetStart",
+                "rightValue",
+                "secondaryValue"
             ):
                 if optional_key in record:
                     item[optional_key] = (

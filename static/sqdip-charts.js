@@ -73,7 +73,17 @@
         rightValueLabel: "",
         showRowSeparators: false,
         orientation: "horizontal",
-        yLabel: ""
+        yLabel: "",
+        secondaryValueKey:
+            "secondaryValue",
+        secondaryValueFormatter:
+            "number",
+        secondaryValueLabel:
+            "",
+        targetBandStart:
+            null,
+        targetBandEnd:
+            null,
     });
 
     formatters.set("number", value => new Intl.NumberFormat("en-GB", {
@@ -228,7 +238,16 @@
                     raw: item,
 
                     rightValue: safeNumber(
-                        item[mergedOptions.rightValueKey]
+                        item[
+                            mergedOptions.rightValueKey
+                        ]
+                    ),
+
+                    secondaryValue: safeNumber(
+                        item[
+                            mergedOptions
+                                .secondaryValueKey
+                        ]
                     ),
                 };
             })
@@ -301,6 +320,39 @@
             );
         }
 
+        if (
+            row.secondaryValue !== null
+        ) {
+            rowValues.push(
+                row.secondaryValue
+            );
+        }
+
+        const targetBandStart =
+            safeNumber(
+                options.targetBandStart
+            );
+
+        const targetBandEnd =
+            safeNumber(
+                options.targetBandEnd
+            );
+
+        if (
+            targetBandStart !== null
+        ) {
+            values.push(
+                targetBandStart
+            );
+        }
+
+        if (
+            targetBandEnd !== null
+        ) {
+            values.push(
+                targetBandEnd
+            );
+        }
         return rowValues;
     });
 
@@ -665,6 +717,15 @@
 
             const zeroX = xPosition(0);
 
+            const targetBandGroup =
+                createSvgElement(
+                    "g",
+                    {
+                        class:
+                            "sqdip-chart__target-band-group"
+                    }
+                );
+
             const svg = createSvgElement("svg", {
                 class: "sqdip-chart__svg",
                 viewBox: `0 0 ${width} ${height}`,
@@ -674,6 +735,63 @@
                 "aria-label": this.options.ariaLabel,
                 preserveAspectRatio: "xMidYMin meet"
             });
+
+            const targetBandStart =
+                safeNumber(
+                    this.options
+                        .targetBandStart
+                );
+
+            const targetBandEnd =
+                safeNumber(
+                    this.options
+                        .targetBandEnd
+                );
+
+            if (
+                targetBandStart !== null
+                && targetBandEnd !== null
+            ) {
+
+                const targetStartX =
+                    xPosition(
+                        targetBandStart
+                    );
+
+                const targetEndX =
+                    xPosition(
+                        targetBandEnd
+                    );
+
+                targetBandGroup.appendChild(
+                    createSvgElement(
+                        "rect",
+                        {
+                            class:
+                                "sqdip-chart__target-band",
+
+                            x:
+                                Math.min(
+                                    targetStartX,
+                                    targetEndX
+                                ),
+
+                            y:
+                                layout.plotTop,
+
+                            width:
+                                Math.abs(
+                                    targetEndX
+                                    - targetStartX
+                                ),
+
+                            height:
+                                layout.plotBottom
+                                - layout.plotTop
+                        }
+                    )
+                );
+            }
 
             const title = createSvgElement(
                 "title",
@@ -743,6 +861,24 @@
                     class: "sqdip-chart__bars"
                 }
             );
+
+            const secondaryBarsGroup =
+                createSvgElement(
+                    "g",
+                    {
+                        class:
+                            "sqdip-chart__secondary-bars"
+                    }
+                );
+
+            const secondaryValuesGroup =
+                createSvgElement(
+                    "g",
+                    {
+                        class:
+                            "sqdip-chart__secondary-values"
+                    }
+                );
 
             const labelsGroup = createSvgElement(
                 "g",
@@ -977,6 +1113,104 @@
                     rowHeight
                         * this.options.barHeightRatio
                 );
+
+                if (
+                row.secondaryValue
+                    !== null
+            ) {
+
+                const secondaryX =
+                    xPosition(
+                        row.secondaryValue
+                    );
+
+                const secondaryBarX =
+                    Math.min(
+                        zeroX,
+                        secondaryX
+                    );
+
+                const secondaryBarWidth =
+                    Math.max(
+                        Math.abs(
+                            secondaryX
+                            - zeroX
+                        ),
+                        1
+                    );
+
+                secondaryBarsGroup
+                    .appendChild(
+                        createSvgElement(
+                            "rect",
+                            {
+                                class:
+                                    "sqdip-chart__secondary-bar",
+
+                                x:
+                                    secondaryBarX,
+
+                                y:
+                                    centreY
+                                    - (
+                                        barHeight
+                                        / 2
+                                    ),
+
+                                width:
+                                    secondaryBarWidth,
+
+                                height:
+                                    barHeight,
+
+                                rx:
+                                    2
+                            }
+                        )
+                    );
+
+
+                const formatSecondary =
+                    getFormatter(
+                        this.options
+                            .secondaryValueFormatter
+                    );
+
+
+                /*
+                * Display the due-days number
+                * in the middle of the yellow bar.
+                */
+                secondaryValuesGroup
+                    .appendChild(
+                        createSvgElement(
+                            "text",
+                            {
+                                class:
+                                    "sqdip-chart__secondary-value",
+
+                                x:
+                                    (
+                                        zeroX
+                                        + secondaryX
+                                    ) / 2,
+
+                                y:
+                                    centreY,
+
+                                "dominant-baseline":
+                                    "middle",
+
+                                "text-anchor":
+                                    "middle"
+                            },
+
+                            formatSecondary(
+                                row.secondaryValue
+                            )
+                        )
+                    );
+            }
 
                 const valueX = xPosition(row.value);
                 const barX = Math.min(zeroX, valueX);
@@ -1704,10 +1938,24 @@
 
             svg.append(
                 gridGroup,
+
+                targetBandGroup,
+
                 barsGroup,
+
+                secondaryBarsGroup,
+
+                targetsGroup,
+
                 axisGroup,
+
                 labelsGroup,
-                valuesGroup
+
+                valuesGroup,
+
+                secondaryValuesGroup,
+
+                rightValuesGroup
             );
 
             this.target.appendChild(
