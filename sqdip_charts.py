@@ -762,6 +762,89 @@ CHARTS: dict[str, ChartDefinition] = {
                 30
         },
     ),
+    "I11": ChartDefinition(
+        sql = """
+        SELECT
+            CONCAT([WONo] , ' <' , [WOSalesOrder] , '/' , [WOLineNo] , '> ' , [WOPartNo]) AS y,
+            DATEDIFF(DAY,[SOLinePromisedDate],[WOSchedFinishDate]) AS x
+        FROM
+            (
+                [Pcubed].[dbo].[worksOrder]
+                LEFT JOIN AllItems ON [Pcubed].[dbo].[worksOrder].WOPartNo = AllItems.PartNo
+            )
+            INNER JOIN AllSO ON ([Pcubed].[dbo].[worksOrder].WOLineNo = AllSO.SOLineNo)
+            AND ([Pcubed].[dbo].[worksOrder].WOSalesOrder = AllSO.SONo)
+        WHERE
+            (
+                (DATEDIFF(DAY,[SOLinePromisedDate],[WOSchedFinishDate]) > 0)
+                AND (DATEDIFF(DAY,[SOLineShipQty],[SOLineQty]) > 0)
+                AND (([Pcubed].[dbo].[worksOrder].WOStatusDescription) NOT LIKE 'Completed')
+            )
+        ORDER BY x DESC;
+        """,
+        title=
+            "WO Schedule Finish > SO Promised",
+
+        x_label=
+            "Days Late",
+
+        formatter=
+            "integer",
+    ),    
+    "I12": ChartDefinition(
+        sql="""
+        WITH Qry_Exp_I12_MatExp AS
+        (SELECT
+            AllLiveGRN.GRNNo,
+            AllLiveGRN.GRNPartNo,
+            AllItems.PartDescription,
+            AllLiveGRN.GRNQtyLeft,
+            AllItems.PartLeadTime,
+            DATEDIFF(DAY,GETDATE(),[GRNExpiryDate]) AS DaysTillExpiry,
+            AllLiveGRN.GRNExpiryDate,
+            AllItems.PartGroupCode,
+            AllLiveGRN.GRNLocation,
+            [DemandSO] + [DemandWO] AS Demand,
+            AllItems.PartStockActive
+        FROM
+            AllLiveGRN
+            INNER JOIN AllItems ON AllLiveGRN.GRNPartNo = AllItems.PartNo
+        GROUP BY
+            AllLiveGRN.GRNNo,
+            AllLiveGRN.GRNPartNo,
+            AllItems.PartDescription,
+            AllLiveGRN.GRNQtyLeft,
+            AllItems.PartLeadTime,
+            DATEDIFF(DAY,GETDATE(),[GRNExpiryDate]),
+            AllLiveGRN.GRNExpiryDate,
+            AllItems.PartGroupCode,
+            AllLiveGRN.GRNLocation,
+            [DemandSO] + [DemandWO],
+            AllItems.PartStockActive,
+            [GRNExpiryDate] - [PartLeadTime] -7
+        HAVING
+            ((DATEDIFF(DAY,GETDATE(),[GRNExpiryDate])) < 60)
+                AND ((AllLiveGRN.GRNLocation) NOT LIKE '%QUARANTINE%')
+            )
+
+            SELECT
+            concat([GRNNo] , ' <' , [GRNPartNo] , '>') AS y,
+            Qry_Exp_I12_MatExp.DaysTillExpiry AS x
+        FROM
+            Qry_Exp_I12_MatExp
+
+        ORDER BY
+            DATEDIFF(DAY,GETDATE(),[GRNExpiryDate]);
+        """,
+        title=
+            "Material and PCB Shelf Life Expiry Within 60 Days",
+
+        x_label=
+            " ",
+
+        formatter=
+            "integer",
+    ),
 }
 
 

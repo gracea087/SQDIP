@@ -151,14 +151,30 @@
 }
 
 .sqdip-chart__value {
-    fill: var(--sqdip-text);
+    fill: #000000;
     font-size: var(--sqdip-value-size);
     font-weight: 600;
+
+    opacity: 1;
+    visibility: visible;
+
     pointer-events: none;
 }
 
-.sqdip-chart__value--negative {
-    fill: var(--sqdip-negative-bar);
+.sqdip-chart__value--inside {
+    fill: #000000;
+
+    /*
+     * Thin white outline keeps the
+     * black number readable when it
+     * sits inside a dark bar.
+     */
+    stroke: #ffffff;
+    stroke-width: 3px;
+    paint-order: stroke fill;
+
+    opacity: 1;
+    visibility: visible;
 }
 
 .sqdip-chart__status {

@@ -1415,56 +1415,103 @@
                 );
 
                 if (this.options.showValues) {
+
                     const valueIsPositive =
                         row.value >= 0;
 
-                    let textX = valueIsPositive
-                        ? valueX + valueGap
-                        : valueX - valueGap;
-
-                    let anchor = valueIsPositive
-                        ? "start"
-                        : "end";
-
-                    const estimatedTextWidth = Math.max(
-                        28,
-                        formatValue(row.value).length * 7
-                    );
-
-                    if (
+                    let textX =
                         valueIsPositive
-                        && textX + estimatedTextWidth
-                            > layout.plotRight
-                    ) {
-                        textX = valueX - valueGap;
-                        anchor = "end";
-                    } else if (
-                        !valueIsPositive
-                        && textX - estimatedTextWidth
-                            < layout.plotLeft
-                    ) {
-                        textX = valueX + valueGap;
-                        anchor = "start";
-                    }
+                            ? valueX + valueGap
+                            : valueX - valueGap;
 
-                    valuesGroup.appendChild(createSvgElement(
-                        "text",
-                        {
-                            class:
-                                `sqdip-chart__value ${
-                                    row.value < 0
-                                        ? "sqdip-chart__value--negative"
-                                        : "sqdip-chart__value--positive"
-                                }`,
-                            x: textX,
-                            y: centreY,
-                            "dominant-baseline": "middle",
-                            "text-anchor": anchor
-                        },
+                    let anchor =
+                        valueIsPositive
+                            ? "start"
+                            : "end";
+
+                    let insideBar =
+                        false;
+
+                    const formattedValue =
                         row.value === 0
                             ? this.options.zeroValueText
-                            : formatValue(row.value)
-                    ));
+                            : formatValue(
+                                row.value
+                            );
+
+                    const estimatedTextWidth =
+                        Math.max(
+                            28,
+                            formattedValue.length * 7
+                        );
+
+
+                    /*
+                    * If there is not enough room
+                    * outside the bar, put the value
+                    * inside the end of the bar.
+                    */
+                    if (
+                        valueIsPositive
+                        && textX
+                            + estimatedTextWidth
+                            > layout.plotRight
+                    ) {
+                        textX =
+                            valueX - valueGap;
+
+                        anchor =
+                            "end";
+
+                        insideBar =
+                            true;
+                    }
+
+                    else if (
+                        !valueIsPositive
+                        && textX
+                            - estimatedTextWidth
+                            < layout.plotLeft
+                    ) {
+                        textX =
+                            valueX + valueGap;
+
+                        anchor =
+                            "start";
+
+                        insideBar =
+                            true;
+                    }
+
+
+                    valuesGroup.appendChild(
+                        createSvgElement(
+                            "text",
+                            {
+                                class:
+                                    "sqdip-chart__value "
+                                    + (
+                                        insideBar
+                                            ? "sqdip-chart__value--inside"
+                                            : ""
+                                    ),
+
+                                x:
+                                    textX,
+
+                                y:
+                                    centreY,
+
+                                "dominant-baseline":
+                                    "middle",
+
+                                "text-anchor":
+                                    anchor
+                            },
+
+                            formattedValue
+                        )
+                    );
                 }
             });
 
