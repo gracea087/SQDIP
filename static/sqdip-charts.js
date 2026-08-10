@@ -71,7 +71,9 @@
         rightValueFormatter: "number",
         rightValueWidth: null,
         rightValueLabel: "",
-        showRowSeparators: false
+        showRowSeparators: false,
+        orientation: "horizontal",
+        yLabel: ""
     });
 
     formatters.set("number", value => new Intl.NumberFormat("en-GB", {
@@ -549,6 +551,14 @@
                 return;
             }
 
+            if (
+                this.options.orientation
+                    === "vertical"
+            ) {
+                this.drawVertical();
+                return;
+            }
+
             this.target.dataset.state = "ready";
             this.target.dataset.axis = this.options.axis;
             this.target.replaceChildren();
@@ -615,6 +625,7 @@
                 `${height}px`
             );
 
+            
             const layout = this.calculateLayout({
                 width,
                 height,
@@ -1151,7 +1162,558 @@
 
             this.target.appendChild(svg);
         }
+        
+        drawVertical() {
+    this.target.dataset.state =
+        "ready";
 
+    this.target.replaceChildren();
+
+    const width = Math.max(
+        this.target.clientWidth,
+        320
+    );
+
+    const height = Math.max(
+        this.options.minHeight,
+        380
+    );
+
+    const leftPadding = 60;
+    const rightPadding = 20;
+    const topPadding =
+        this.options.title
+            ? 75
+            : 45;
+
+    const bottomPadding = 75;
+
+    const plotLeft =
+        leftPadding;
+
+    const plotRight =
+        width - rightPadding;
+
+    const plotTop =
+        topPadding;
+
+    const plotBottom =
+        height - bottomPadding;
+
+    const plotWidth =
+        plotRight - plotLeft;
+
+    const plotHeight =
+        plotBottom - plotTop;
+
+    const scale = calculateScale(
+        this.rows,
+        {
+            ...this.options,
+            min:
+                this.options.min
+                ?? 0
+        }
+    );
+
+    const formatValue =
+        getFormatter(
+            this.options.formatter
+        );
+
+    const yPosition =
+        value => {
+
+            const ratio =
+                (
+                    value
+                    - scale.minimum
+                )
+                /
+                (
+                    scale.maximum
+                    - scale.minimum
+                );
+
+            return (
+                plotBottom
+                - (
+                    ratio
+                    * plotHeight
+                )
+            );
+        };
+
+    const zeroY =
+        yPosition(0);
+
+    const svg =
+        createSvgElement(
+            "svg",
+            {
+                class:
+                    "sqdip-chart__svg "
+                    + "sqdip-chart__svg--vertical",
+
+                viewBox:
+                    `0 0 ${width} ${height}`,
+
+                width:
+                    "100%",
+
+                height,
+
+                role:
+                    "img",
+
+                "aria-label":
+                    this.options.ariaLabel,
+
+                preserveAspectRatio:
+                    "xMidYMin meet"
+            }
+        );
+
+
+    /*
+     * Graph title
+     */
+    if (this.options.title) {
+        svg.appendChild(
+            createSvgElement(
+                "text",
+                {
+                    class:
+                        "sqdip-chart__title",
+
+                    x:
+                        leftPadding,
+
+                    y:
+                        28
+                },
+
+                this.options.title
+            )
+        );
+    }
+
+
+    const gridGroup =
+        createSvgElement(
+            "g",
+            {
+                class:
+                    "sqdip-chart__grid"
+            }
+        );
+
+    const axisGroup =
+        createSvgElement(
+            "g",
+            {
+                class:
+                    "sqdip-chart__axes"
+            }
+        );
+
+    const barsGroup =
+        createSvgElement(
+            "g",
+            {
+                class:
+                    "sqdip-chart__bars"
+            }
+        );
+
+    const labelsGroup =
+        createSvgElement(
+            "g",
+            {
+                class:
+                    "sqdip-chart__labels"
+            }
+        );
+
+    const valuesGroup =
+        createSvgElement(
+            "g",
+            {
+                class:
+                    "sqdip-chart__values"
+            }
+        );
+
+
+    /*
+     * Horizontal value grid lines
+     * and Y-axis values.
+     */
+    scale.ticks.forEach(
+        tick => {
+
+            const y =
+                yPosition(tick);
+
+            if (
+                this.options.showGrid
+            ) {
+                gridGroup.appendChild(
+                    createSvgElement(
+                        "line",
+                        {
+                            class:
+                                "sqdip-chart__grid-line",
+
+                            x1:
+                                plotLeft,
+
+                            y1:
+                                y,
+
+                            x2:
+                                plotRight,
+
+                            y2:
+                                y
+                        }
+                    )
+                );
+            }
+
+            axisGroup.appendChild(
+                createSvgElement(
+                    "text",
+                    {
+                        class:
+                            "sqdip-chart__tick-label",
+
+                        x:
+                            plotLeft - 10,
+
+                        y:
+                            y,
+
+                        "dominant-baseline":
+                            "middle",
+
+                        "text-anchor":
+                            "end"
+                    },
+
+                    formatValue(
+                        tick
+                    )
+                )
+            );
+        }
+    );
+
+
+    /*
+     * X-axis
+     */
+    axisGroup.appendChild(
+        createSvgElement(
+            "line",
+            {
+                class:
+                    "sqdip-chart__x-axis",
+
+                x1:
+                    plotLeft,
+
+                y1:
+                    zeroY,
+
+                x2:
+                    plotRight,
+
+                y2:
+                    zeroY
+            }
+        )
+    );
+
+
+    /*
+     * Y-axis
+     */
+    axisGroup.appendChild(
+        createSvgElement(
+            "line",
+            {
+                class:
+                    "sqdip-chart__zero-line",
+
+                x1:
+                    plotLeft,
+
+                y1:
+                    plotTop,
+
+                x2:
+                    plotLeft,
+
+                y2:
+                    plotBottom
+            }
+        )
+    );
+
+
+    const columnWidth =
+        plotWidth
+        / this.rows.length;
+
+    const barWidth =
+        Math.max(
+            6,
+            Math.min(
+                columnWidth * 0.62,
+                70
+            )
+        );
+
+
+    this.rows.forEach(
+        (row, index) => {
+
+            const centreX =
+                plotLeft
+                + (
+                    columnWidth
+                    * index
+                )
+                + (
+                    columnWidth
+                    / 2
+                );
+
+            const valueY =
+                yPosition(
+                    row.value
+                );
+
+            const barTop =
+                Math.min(
+                    valueY,
+                    zeroY
+                );
+
+            const barHeight =
+                Math.max(
+                    1,
+                    Math.abs(
+                        zeroY
+                        - valueY
+                    )
+                );
+
+
+            /*
+             * Vertical bar.
+             */
+            const bar =
+                createSvgElement(
+                    "rect",
+                    {
+                        class:
+                            "sqdip-chart__bar "
+                            + (
+                                row.value < 0
+                                    ? "sqdip-chart__bar--negative"
+                                    : "sqdip-chart__bar--positive"
+                            ),
+
+                        x:
+                            centreX
+                            - (
+                                barWidth
+                                / 2
+                            ),
+
+                        y:
+                            barTop,
+
+                        width:
+                            barWidth,
+
+                        height:
+                            barHeight,
+
+                        rx:
+                            cssNumber(
+                                this.target,
+                                "--sqdip-bar-radius",
+                                3
+                            )
+                    }
+                );
+
+
+            bar.appendChild(
+                createSvgElement(
+                    "title",
+                    {},
+
+                    `${row.fullLabel}: ${
+                        formatValue(
+                            row.value
+                        )
+                    }`
+                )
+            );
+
+            barsGroup.appendChild(
+                bar
+            );
+
+
+            /*
+             * Month beneath bar.
+             */
+            labelsGroup.appendChild(
+                createSvgElement(
+                    "text",
+                    {
+                        class:
+                            "sqdip-chart__category-label",
+
+                        x:
+                            centreX,
+
+                        y:
+                            plotBottom
+                            + 24,
+
+                        "text-anchor":
+                            "middle"
+                    },
+
+                    row.label
+                )
+            );
+
+
+                /*
+                * Accident count above bar.
+                */
+                if (
+                    this.options.showValues
+                ) {
+                    valuesGroup.appendChild(
+                        createSvgElement(
+                            "text",
+                            {
+                                class:
+                                    "sqdip-chart__value",
+
+                                x:
+                                    centreX,
+
+                                y:
+                                    valueY
+                                    - 8,
+
+                                "text-anchor":
+                                    "middle"
+                            },
+
+                            formatValue(
+                                row.value
+                            )
+                        )
+                    );
+                }
+            }
+        );
+
+
+            /*
+            * X-axis title.
+            */
+            if (this.options.xLabel) {
+                axisGroup.appendChild(
+                    createSvgElement(
+                        "text",
+                        {
+                            class:
+                                "sqdip-chart__x-label",
+
+                            x:
+                                plotLeft
+                                + (
+                                    plotWidth
+                                    / 2
+                                ),
+
+                            y:
+                                height - 12,
+
+                            "text-anchor":
+                                "middle"
+                        },
+
+                        this.options.xLabel
+                    )
+                );
+            }
+
+
+            /*
+            * Y-axis title.
+            */
+            if (this.options.yLabel) {
+                axisGroup.appendChild(
+                    createSvgElement(
+                        "text",
+                        {
+                            class:
+                                "sqdip-chart__x-label "
+                                + "sqdip-chart__y-label",
+
+                            x:
+                                18,
+
+                            y:
+                                plotTop
+                                + (
+                                    plotHeight
+                                    / 2
+                                ),
+
+                            transform:
+                                `rotate(-90 18 ${
+                                    plotTop
+                                    + (
+                                        plotHeight
+                                        / 2
+                                    )
+                                })`,
+
+                            "text-anchor":
+                                "middle"
+                        },
+
+                        this.options.yLabel
+                    )
+                );
+            }
+
+
+            svg.append(
+                gridGroup,
+                barsGroup,
+                axisGroup,
+                labelsGroup,
+                valuesGroup
+            );
+
+            this.target.appendChild(
+                svg
+            );
+        }
         calculateLayout({
             width,
             height,

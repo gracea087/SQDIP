@@ -483,6 +483,296 @@ CHARTS: dict[str, ChartDefinition] = {
             True
         },
     ),
+    "Q9": ChartDefinition(
+        sql="""
+        SELECT
+            CONCAT(grn.GRNNo,'/',grn.GRNLineNo,' (X',grn.GRNQtyLeft, ') ',grn.GRNPartNo) AS y,
+            DATEDIFF(DAY,MAX(tr.TransferDate),GETDATE()) AS x
+        FROM [Pcubed].[dbo].[AllLiveGRN] AS grn
+        LEFT JOIN [Pcubed].[dbo].[AllGRN_Transfer] AS tr
+            ON grn.GRNLineNo = tr.TranferGRNLineNo
+            AND grn.GRNNo = tr.TransferGRNNo
+        WHERE grn.GRNLocation = 'QUARANTINE' AND tr.TransferLocation = 'QUARANTINE'
+        GROUP BY
+            grn.GRNNo,
+            grn.GRNLineNo,
+            grn.GRNQtyLeft,
+            grn.GRNPartNo
+        ORDER BY x DESC;
+        """,
+        title=
+            "Stock in QUARANTINE",
+
+        x_label=
+            "Days in Quarantine",
+
+        formatter=
+            "integer",
+    ),
+    "D7": ChartDefinition(
+        sql="""
+        SELECT
+            LEFT(CONCAT([PONum],' # ',[POSuppAddressName]),14) AS y,
+            DATEDIFF(DAY,[POOrderDate],GETDATE()) AS x,
+            7 AS target
+        FROM [Pcubed].[dbo].[AllLivePO]
+        WHERE CAST([PODetDatePromised] AS date) <> '2081-04-01'
+            AND [POSubmitted] = 0
+        GROUP BY
+            [PONum],
+            [POOrderDate],
+            [POSuppAddressName],
+            [POSubmitted]
+        ORDER BY x DESC;
+        """,
+        title=
+            "PO Not Submitted",
+
+        x_label=
+            "Days Since PO Entered",
+
+        formatter=
+            "integer",
+    ),
+    "I8": ChartDefinition(
+        sql="""
+        SELECT
+            CONCAT([GRNNo],' (X',[GRNQtyLeft],') ',[GRNPartNo]) AS y,
+            DATEDIFF(DAY,[GRNDateReceived],GETDATE()) AS x,
+            5 AS target
+        FROM [Pcubed].[dbo].[AllLiveGRN]
+        WHERE [GRNLocation] = 'GREY MARKET INSPECTION'
+        ORDER BY x DESC;
+        """,
+        title=
+            "Grey Market Inspection",
+
+        x_label=
+            "Days",
+
+        formatter=
+            "integer",
+    ),
+    "D1a2": ChartDefinition(
+        sql="""
+        WITH Qry_Exp_D1a2_LatePOReq AS
+            (SELECT po.PONum AS PO, po.PODetItemNum, po.PODetPart, po.PODetPartDescr, po.POSuppAddressName, emp.Name AS Buyer,
+            DATEDIFF(DAY,CAST(po.PODetDateReq AS date),CAST(GETDATE() AS date)) AS DaysLate,po.PODetDateReq,
+            MAX(po.PODetDatePromised) AS MaxOfPODetDatePromised,
+            po.PODetDateLatest
+            FROM [Pcubed].[dbo].[AllLivePO] AS po
+            LEFT JOIN [Pcubed].[dbo].[employees] AS emp ON po.POBuyer = emp.BadgeNo
+            WHERE po.PODetPart IS NOT NULL
+            AND DATEDIFF(DAY,CAST(po.PODetDateReq AS date),CAST(GETDATE() AS date) ) > 7
+            AND CAST(po.PODetDateLatest AS date) NOT IN
+                    ('2001-01-01',
+                    '2008-08-08',
+                    '2009-09-09',
+                    '2010-10-10',
+                    '2002-02-02',
+                    '2018-12-31')
+
+                GROUP BY
+                    po.PONum,
+                    po.PODetItemNum,
+                    po.PODetPart,
+                    po.PODetPartDescr,
+                    po.POSuppAddressName,
+                    emp.Name,
+                    po.PODetDateReq,
+                    po.PODetDateLatest
+
+                HAVING
+                    CAST(MAX( po.PODetDatePromised) AS date) NOT IN
+                    ('2081-12-31',
+                    '2002-02-02'))
+            SELECT LEFT( CONCAT(
+                        PO,
+                        '/',
+                        PODetItemNum,
+                        ' : ',
+                        PODetPart,
+                        ' : ',
+                        POSuppAddressName), 50) AS y,
+                DaysLate AS x
+            FROM Qry_Exp_D1a2_LatePOReq
+            ORDER BY x DESC;
+        """,
+        title=
+            "Overdue Purchase Orders (Requested) > 7 Days",
+
+        x_label=
+            "Days Late",
+
+        formatter=
+            "integer",
+    ),
+        "S1": ChartDefinition(
+        sql="""
+            SELECT CONCAT(' ',FORMAT([Date], 'yy/MM'),' ') AS x,
+                COUNT([Accident Description]) AS y
+            FROM [Pcubed].[dbo].[Accident]
+            WHERE [Date] > DATEADD(DAY,-365,GETDATE())
+            GROUP BY FORMAT([Date], 'yy/MM')
+            ORDER BY FORMAT([Date], 'yy/MM');
+        """,
+
+        title=
+            "Accidents Per Month (Last 12 Months)",
+
+        x_label=
+            "Year / Month",
+
+        formatter=
+            "integer",
+
+        meta={
+            "orientation":
+                "vertical",
+
+            "valueKey":
+                "y",
+
+            "labelKey":
+                "x",
+
+            "yLabel":
+                "Number of Accidents"
+        },
+    ),
+    "Q1": ChartDefinition(
+        sql="""
+        WITH Qry_Exp_Q1_AllReturnRepair AS
+        (
+            SELECT
+                RIGHT(
+                    so.SOLinePartNo,
+                    6
+                ) AS Type,
+
+                so.SOLinePartNo,
+
+                wo.WONo,
+
+                wo.WOJobType AS Location,
+
+                so.SONo,
+
+                so.SOLineNo,
+
+                so.SOLineQty
+                    - so.SOLineShipQty
+                    AS SOOSQty,
+
+                DATEDIFF(
+                    DAY,
+                    CAST(so.SODate AS date),
+                    CAST(GETDATE() AS date)
+                ) AS SOOpenDays,
+
+                30 AS Target,
+
+                DATEDIFF(
+                    DAY,
+                    CAST(GETDATE() AS date),
+                    CAST(
+                        so.SOLinePromisedDate
+                        AS date
+                    )
+                ) AS SODueDays,
+
+                wo.WONotes,
+
+                so.SODescription
+
+            FROM
+                [Pcubed].[dbo].[AllSO] AS so
+
+            LEFT JOIN
+                [Pcubed].[dbo].[AllWO] AS wo
+
+                ON so.SOLineNo
+                    = wo.WOLineNo
+
+                AND so.SOLinePartNo
+                    = wo.WOPartNo
+
+                AND so.SONo
+                    = wo.WOSalesOrder
+
+            WHERE
+                (
+                    so.SOLinePartNo
+                        LIKE '%-RETURN'
+
+                    OR so.SOLinePartNo
+                        LIKE '%-REPAIR'
+                )
+
+                AND so.SOLineStatus <> 50
+
+                AND so.SOLineShipQty
+                    < so.SOLineQty
+
+                AND
+                (
+                    so.SODescription
+                        <> 'On Hold'
+
+                    OR so.SODescription
+                        IS NULL
+                )
+        )
+
+        SELECT
+            CONCAT(
+                SONo,
+                '/',
+                SOLineNo,
+                ' : (WO-',
+                WONo,
+                ') ',
+                LEFT(
+                    SOLinePartNo,
+                    18
+                ),
+                ' : ',
+                SOOSQty
+            ) AS y,
+
+            SOOpenDays AS x,
+
+            30 AS target,
+
+            SODueDays,
+
+            Location
+
+        FROM
+            Qry_Exp_Q1_AllReturnRepair
+
+        WHERE
+            (
+                Location
+                    <> 'PENDING CUSTOMER'
+
+                OR Location IS NULL
+            )
+
+            AND SOLinePartNo LIKE ?
+
+        ORDER BY
+            SOOpenDays DESC;
+        """,
+        title=
+            "Return And Repair WO's (Excl. SO on Hold)",
+
+        x_label=
+            "So Open",
+
+        formatter=
+            "integer",
+    ),    
 }
 
 

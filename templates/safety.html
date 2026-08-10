@@ -3,7 +3,20 @@
 {% set page_title = "SAFETY" %}
 
 {% block content %}
-<button id="S1" type="button">S1</button>
+<div class="button-container">
+    <button id="S1" type="button" data-sqdip-chart="S1">S1</button>
+</div>
+
+<section
+    id="safetyGraphPanel"
+    class="safety-graph-panel"
+    hidden
+>
+    <div
+        id="safetyGraph"
+        class="safety-graph"
+    ></div>
+</section>
 
 <script>
 document.addEventListener(
@@ -33,4 +46,8 @@ document.addEventListener(
     }
 );
 </script>
+
+<script src="{{ url_for( 'static', filename='sqdip-charts.js' ) }}"></script>
+
+<script src="{{ url_for('static', filename='safety.js') }}"></script>
 {% endblock %}

@@ -460,10 +460,73 @@ textarea:focus,
 }
 
 
+#safetyGraph[
+    data-chart-id="S1"
+] {
+    --sqdip-positive-bar: var(--graph-main);
+    --sqdip-negative-bar: var(--graph-negative);
 
+    --sqdip-row-height: 45px;
+    --sqdip-left-label-width: 475px;
+
+    --sqdip-label-size: 13px;
+    --sqdip-value-size: 12px;
+}
+
+
+@media (max-width: 800px) {
+    .deliverables-graph-panel {
+        width: calc(100% - 20px);
+        margin: 10px;
+        padding: 10px;
+    }
+
+
+    #safetyGraph[
+        data-chart-id="S1"
+    ] {
+        --sqdip-row-height: 34px;
+        --sqdip-left-label-width: 250px;
+        --sqdip-label-size: 11px;
+        --sqdip-value-size: 10px;
+    }
+}
 /* /////////////////////////////////// */
             /* QUALITY */
 /* /////////////////////////////////// */
+
+#qualityGraph[
+    data-chart-id="Q1"
+] {
+    --sqdip-positive-bar: var(--graph-main);
+    --sqdip-negative-bar: var(--graph-negative);
+
+    --sqdip-row-height: 45px;
+    --sqdip-left-label-width: 375px;
+
+    --sqdip-label-size: 13px;
+    --sqdip-value-size: 12px;
+}
+
+
+@media (max-width: 800px) {
+    .quality-graph-panel {
+        width: calc(100% - 20px);
+        margin: 10px;
+        padding: 10px;
+    }
+
+
+    #qualityGraph[
+        data-chart-id="Q1"
+    ] {
+        --sqdip-row-height: 34px;
+        --sqdip-left-label-width: 135px;
+        --sqdip-label-size: 11px;
+        --sqdip-value-size: 10px;
+    }
+}
+
 #qualityGraph[
     data-chart-id="Q2_grn"
 ] {
@@ -528,6 +591,38 @@ textarea:focus,
     }
 }
 
+#qualityGraph[
+    data-chart-id="Q9"
+] {
+    --sqdip-positive-bar: var(--graph-main);
+    --sqdip-negative-bar: var(--graph-negative);
+
+    --sqdip-row-height: 45px;
+    --sqdip-left-label-width: 375px;
+
+    --sqdip-label-size: 13px;
+    --sqdip-value-size: 12px;
+}
+
+
+@media (max-width: 800px) {
+    .quality-graph-panel {
+        width: calc(100% - 20px);
+        margin: 10px;
+        padding: 10px;
+    }
+
+
+    #qualityGraph[
+        data-chart-id="Q9"
+    ] {
+        --sqdip-row-height: 34px;
+        --sqdip-left-label-width: 135px;
+        --sqdip-label-size: 11px;
+        --sqdip-value-size: 10px;
+    }
+}
+
 /* /////////////////////////////////// */
             /* DELIVERABLES */
 /* /////////////////////////////////// */
@@ -556,6 +651,38 @@ textarea:focus,
 
     #deliverablesGraph[
         data-chart-id="D1a1"
+    ] {
+        --sqdip-row-height: 34px;
+        --sqdip-left-label-width: 250px;
+        --sqdip-label-size: 11px;
+        --sqdip-value-size: 10px;
+    }
+}
+
+#deliverablesGraph[
+    data-chart-id="D1a2"
+] {
+    --sqdip-positive-bar: var(--graph-main);
+    --sqdip-negative-bar: var(--graph-negative);
+
+    --sqdip-row-height: 45px;
+    --sqdip-left-label-width: 475px;
+
+    --sqdip-label-size: 13px;
+    --sqdip-value-size: 12px;
+}
+
+
+@media (max-width: 800px) {
+    .deliverables-graph-panel {
+        width: calc(100% - 20px);
+        margin: 10px;
+        padding: 10px;
+    }
+
+
+    #deliverablesGraph[
+        data-chart-id="D1a2"
     ] {
         --sqdip-row-height: 34px;
         --sqdip-left-label-width: 250px;
@@ -695,6 +822,38 @@ textarea:focus,
     --sqdip-target-line: #fd3f6e;
     --sqdip-target-line-width: 2px;
 }
+
+#deliverablesGraph[
+    data-chart-id="D7"
+] {
+    --sqdip-positive-bar: var(--graph-main);
+    --sqdip-negative-bar: var(--graph-negative);
+
+    --sqdip-row-height: 45px;
+    --sqdip-left-label-width: 475px;
+
+    --sqdip-label-size: 13px;
+    --sqdip-value-size: 12px;
+}
+
+
+@media (max-width: 800px) {
+    .deliverables-graph-panel {
+        width: calc(100% - 20px);
+        margin: 10px;
+        padding: 10px;
+    }
+
+
+    #deliverablesGraph[
+        data-chart-id="D7"
+    ] {
+        --sqdip-row-height: 34px;
+        --sqdip-left-label-width: 250px;
+        --sqdip-label-size: 11px;
+        --sqdip-value-size: 10px;
+    }
+}
 /* /////////////////////////////////// */
             /* INVENTORY */
 /* /////////////////////////////////// */
@@ -794,6 +953,39 @@ textarea:focus,
         --sqdip-value-size: 10px;
     }
 }
+
+#inventoryGraph[
+    data-chart-id="I8"
+] {
+    --sqdip-positive-bar: var(--graph-main);
+    --sqdip-negative-bar: var(--graph-negative);
+
+    --sqdip-row-height: 45px;
+    --sqdip-left-label-width: 375px;
+
+    --sqdip-label-size: 13px;
+    --sqdip-value-size: 12px;
+}
+
+
+@media (max-width: 800px) {
+    .inventory-graph-panel {
+        width: calc(100% - 20px);
+        margin: 10px;
+        padding: 10px;
+    }
+
+
+    #inventoryGraph[
+        data-chart-id="I8"
+    ] {
+        --sqdip-row-height: 34px;
+        --sqdip-left-label-width: 135px;
+        --sqdip-label-size: 11px;
+        --sqdip-value-size: 10px;
+    }
+}
+
 #inventoryGraph[
     data-chart-id="I10_material"
 ] {
