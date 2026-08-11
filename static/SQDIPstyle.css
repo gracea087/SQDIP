@@ -820,7 +820,7 @@ textarea:focus,
 }
 #deliverablesGraph[data-chart-id="D1d"] {
     --sqdip-target-line: #fd3f6e;
-    --sqdip-target-line-width: 2px;
+    --sqdip-target-line-width: 3px;
 }
 
 #deliverablesGraph[
@@ -847,6 +847,38 @@ textarea:focus,
 
     #deliverablesGraph[
         data-chart-id="D7"
+    ] {
+        --sqdip-row-height: 34px;
+        --sqdip-left-label-width: 250px;
+        --sqdip-label-size: 11px;
+        --sqdip-value-size: 10px;
+    }
+}
+
+#deliverablesGraph[
+    data-chart-id="D8"
+] {
+    --sqdip-positive-bar: var(--graph-main);
+    --sqdip-negative-bar: var(--graph-negative);
+
+    --sqdip-row-height: 45px;
+    --sqdip-left-label-width: 230px;
+
+    --sqdip-label-size: 13px;
+    --sqdip-value-size: 12px;
+}
+
+
+@media (max-width: 800px) {
+    .deliverables-graph-panel {
+        width: calc(100% - 20px);
+        margin: 10px;
+        padding: 10px;
+    }
+
+
+    #deliverablesGraph[
+        data-chart-id="D8"
     ] {
         --sqdip-row-height: 34px;
         --sqdip-left-label-width: 250px;

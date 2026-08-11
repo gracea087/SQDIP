@@ -840,7 +840,98 @@ CHARTS: dict[str, ChartDefinition] = {
             "Material and PCB Shelf Life Expiry Within 60 Days",
 
         x_label=
-            " ",
+            "Days Untill Expiry",
+
+        formatter=
+            "integer",
+    ),
+    "D8": ChartDefinition(
+        sql="""
+        WITH Qry_MaxPOUnitPrice AS
+        (SELECT
+            AllLivePO.PODetPart AS POPartNo,
+            Max(AllLivePO.PODetUnitPrice) AS MaxOfPODetUnitPrice
+        FROM
+            AllLivePO
+        GROUP BY
+            AllLivePO.PODetPart)
+
+        SELECT
+            TOP 20 AllLivePO.PODetPart AS y,
+            [MaxOfPODetUnitPrice] * (
+                IIf(
+                    [PartStockOnOrderPO] < [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO],
+                    [PartStockOnOrderPO],
+                    [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO]
+                ) / [PartUOMUOPConv]
+            ) AS x
+        FROM
+            (
+                (
+                    AllLivePO
+                    INNER JOIN AllItems ON AllLivePO.PODetPart = AllItems.PartNo
+                )
+                INNER JOIN employees ON AllLivePO.POBuyer = employees.BadgeNo
+            )
+            INNER JOIN Qry_MaxPOUnitPrice ON AllLivePO.PODetPart = Qry_MaxPOUnitPrice.POPartNo
+        WHERE
+            (((AllItems.PartMinStockLev) = 0))
+        GROUP BY
+            AllLivePO.PODetPart,
+            [MaxOfPODetUnitPrice] * (
+                IIf(
+                    [PartStockOnOrderPO] < [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO],
+                    [PartStockOnOrderPO],
+                    [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO]
+                ) / [PartUOMUOPConv]
+            ),
+            IIf(
+                [PartStockOnOrderPO] < [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO],
+                [PartStockOnOrderPO],
+                [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO]
+            )
+        HAVING
+            (
+                (
+                    (
+                        [MaxOfPODetUnitPrice] * (
+                            IIf(
+                                [PartStockOnOrderPO] < [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO],
+                                [PartStockOnOrderPO],
+                                [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO]
+                            ) / [PartUOMUOPConv]
+                        )
+                    ) > 20
+                )
+                AND (
+                    (
+                        IIf(
+                            [PartStockOnOrderPO] < [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO],
+                            [PartStockOnOrderPO],
+                            [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO]
+                        )
+                    ) > 0
+                )
+                AND (
+                    (Min(AllLivePO.PODetDatePromised)) NOT LIKE '1 / 1 / 2001'
+                    AND (Min(AllLivePO.PODetDatePromised)) NOT LIKE '4 / 1 / 2081'
+                    AND (Min(AllLivePO.PODetDatePromised)) NOT LIKE '1 / 1 / 2002'
+                )
+            )
+        ORDER BY
+            [MaxOfPODetUnitPrice] * (
+                IIf(
+                    [PartStockOnOrderPO] < [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO],
+                    [PartStockOnOrderPO],
+                    [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO]
+                ) / [PartUOMUOPConv]
+            ) DESC;
+        """,
+        title=
+            "Excess PO Qty (Top 20 by Excess Value >£20)",
+
+        x_label=
+            "Excess PO Qty Value £",
 
         formatter=
             "integer",
