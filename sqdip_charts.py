@@ -1410,9 +1410,7 @@ CHARTS: dict[str, ChartDefinition] = {
                 SOLinePromisedDate,
                 Qry_Exp_D12_SOHold.SOCustID
             HAVING
-                (
-                    ((Qry_Exp_D12_SOHold.SOCustID) NOT LIKE 'MEG-VMI')
-                )
+                (((Qry_Exp_D12_SOHold.SOCustID) NOT LIKE 'MEG-VMI'))
             ORDER BY x ASC;
         """,
         title=
@@ -1420,6 +1418,63 @@ CHARTS: dict[str, ChartDefinition] = {
 
         x_label=
             "Days Untill Promised Delivery",
+
+        formatter=
+            "integer",
+    ),
+    "P3a": ChartDefinition(
+        sql="""
+        SELECT
+            AllCR.AssignedName AS y,
+            Count(CONCAT([ContractReviewNo] , ' ' , [ContRevDetailTaskNo])) AS x
+        FROM
+            AllCR
+        WHERE
+            (((AllCR.CRStatusDescription) = 'Open')
+                AND ((AllCR.ContRevDetailTargetDate) < GETDATE()))
+        GROUP BY
+            AllCR.AssignedName
+        ORDER BY
+            X DESC;
+        """,
+        title=
+            "Overdue CR Actions",
+
+        x_label=
+            "QTY Overdue Actions",
+
+        formatter=
+            "integer",
+    ),
+    "P3b": ChartDefinition(
+        sql="""
+        SELECT
+            LEFT(CONCAT([ContractReviewNo] , '/' , [ContRevDetailTaskNo] , ' - ' , [AssignedName] , ' # ' , [ContRevDetailTask]),50) AS y,
+            DATEDIFF(DAY,GETDATE(),[ContRevDetailTargetDate]) AS x,
+            AllCR.ContRevDetailTask
+        FROM
+            AllCR
+        GROUP BY
+            ContractReviewNo,
+            ContRevDetailTaskNo,
+            AssignedName,
+            ContRevDetailTask,
+            ContRevDetailTargetDate,
+            AllCR.ContRevDetailTask,
+            AllCR.CRStatusDescription,
+            AllCR.ContractReviewDate
+        HAVING
+            (((AllCR.ContRevDetailTask) LIKE '%LONG LEAD%'
+            OR (AllCR.ContRevDetailTask) LIKE '%BOM%'
+            OR (AllCR.ContRevDetailTask) LIKE '%WORK ORDER%')
+            AND ((AllCR.CRStatusDescription) = 'open'))
+        ORDER BY x DESC;
+        """,
+        title=
+            "Open 'Long Lead', 'BOM' and 'WO' related CR Actions",
+
+        x_label=
+            "Days Untill Due",
 
         formatter=
             "integer",
