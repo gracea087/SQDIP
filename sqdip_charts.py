@@ -936,6 +936,31 @@ CHARTS: dict[str, ChartDefinition] = {
         formatter=
             "integer",
     ),
+    "I4": ChartDefinition(
+        sql="""
+        SELECT
+            Left(CONCAT([GRNNo] , ' <' , [GRNPartNo] , '> ' , [PartDescription]),25) AS y,
+            DATEDIFF(DAY,[GRNDateReceived],GETDATE()) AS x,
+            5 AS Target
+        FROM
+            (AllLiveGRN LEFT JOIN AllItems ON AllLiveGRN.GRNPartNo = AllItems.PartNo)
+            LEFT JOIN AllWOPartDemand ON AllLiveGRN.GRNPartNo = AllWOPartDemand.PartNo
+
+        WHERE
+            (((AllLiveGRN.GRNRequiresRelease) = 1)
+                AND ((AllLiveGRN.GRNLocation) NOT LIKE 'MRB%'
+                    AND (AllLiveGRN.GRNLocation) NOT LIKE 'GREY MARKET INSPECTION'))
+        ORDER BY x DESC;
+        """,
+        title=
+            "Stock Awaiting Release (Days since parts Recieved)",
+
+        x_label=
+            "Days In WIP",
+
+        formatter=
+            "integer",
+    ),
 }
 
 
