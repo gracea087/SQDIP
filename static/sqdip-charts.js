@@ -526,52 +526,160 @@
     }
 
     class HorizontalBarChart {
-        constructor(target, options = {}) {
-            this.target = resolveElement(target);
-            this.options = mergeOptions(DEFAULTS, options);
+        constructor(
+            target,
+            options = {}
+        ) {
+            this.target =
+                resolveElement(
+                    target
+                );
+
+
+            /*
+            * baseOptions contains only
+            * DEFAULTS + options explicitly
+            * supplied when the chart was
+            * created.
+            *
+            * Graph-specific metadata must
+            * NOT be permanently stored here.
+            */
+            this.baseOptions =
+                mergeOptions(
+                    DEFAULTS,
+                    options
+                );
+
+
+            this.options =
+                this.baseOptions;
+
+
             this.rows = [];
+
             this.payload = null;
-            this.abortController = null;
-            this.destroyed = false;
 
-            this.target.classList.add("sqdip-chart");
-            this.target.setAttribute("aria-live", "polite");
+            this.abortController =
+                null;
 
-            this.handleResize = debounce(() => {
-                if (!this.destroyed && this.rows.length > 0) {
-                    this.draw();
-                }
-            }, this.options.resizeDebounceMs);
+            this.destroyed =
+                false;
 
-            if (typeof ResizeObserver === "function") {
-                this.resizeObserver = new ResizeObserver(this.handleResize);
-                this.resizeObserver.observe(this.target);
-            } else {
-                window.addEventListener("resize", this.handleResize);
+
+            this.target.classList.add(
+                "sqdip-chart"
+            );
+
+            this.target.setAttribute(
+                "aria-live",
+                "polite"
+            );
+
+
+            this.handleResize =
+                debounce(
+                    () => {
+
+                        if (
+                            !this.destroyed
+                            && this.rows.length > 0
+                        ) {
+                            this.draw();
+                        }
+
+                    },
+
+                    this.options
+                        .resizeDebounceMs
+                );
+
+
+            if (
+                typeof ResizeObserver
+                    === "function"
+            ) {
+                this.resizeObserver =
+                    new ResizeObserver(
+                        this.handleResize
+                    );
+
+                this.resizeObserver.observe(
+                    this.target
+                );
+            }
+            else {
+                window.addEventListener(
+                    "resize",
+                    this.handleResize
+                );
             }
         }
 
-        setOptions(options = {}) {
-            this.options = mergeOptions(this.options, options);
+
+        setOptions(
+            options = {}
+        ) {
+            /*
+            * Update only the permanent
+            * base configuration.
+            */
+            this.baseOptions =
+                mergeOptions(
+                    this.baseOptions,
+                    options
+                );
+
+
+            this.options =
+                this.baseOptions;
+
 
             if (this.payload) {
-                this.setData(this.payload);
+                this.setData(
+                    this.payload
+                );
             }
+
 
             return this;
         }
 
-        setData(payload) {
-            this.payload = payload;
 
-            const normalised = normalisePayload(
-                payload,
-                this.options
-            );
+        setData(
+            payload
+        ) {
+            this.payload =
+                payload;
 
-            this.options = normalised.options;
-            this.rows = normalised.rows;
+
+            /*
+            * IMPORTANT:
+            *
+            * Start every new graph from
+            * baseOptions.
+            *
+            * Do NOT start from this.options,
+            * because this.options may contain
+            * metadata belonging to the
+            * previously displayed graph.
+            */
+            const normalised =
+                normalisePayload(
+                    payload,
+                    this.baseOptions
+                );
+
+
+            this.options =
+                normalised.options;
+
+            this.rows =
+                normalised.rows;
+
+
             this.draw();
+
 
             return this;
         }

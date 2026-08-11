@@ -354,6 +354,24 @@
     background-color: #e2ac17;
 }
 
+/* NCR TYPE - CORRECTIVE */
+.sqdip-chart-filter-button.filter-corrective {
+    background-color: #bb2c22;
+}
+
+
+/* NCR TYPE - PREVENTATIVE */
+.sqdip-chart-filter-button.filter-prevent {
+    background-color: #f88425;
+}
+
+
+/* NCR TYPE - FOLLOW */
+.sqdip-chart-filter-button.filter-follow {
+    background-color: #61c554;
+}
+
+
 .sqdip-chart {
     --sqdip-right-value-width: 130px;
 }

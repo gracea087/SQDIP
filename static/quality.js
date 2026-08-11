@@ -79,6 +79,33 @@ document.addEventListener(
                     "ALL"
             });
 
+        /*
+         * Q7 Type filters.
+         */
+        const q7Filters =
+            SQDIPCharts.mountFilterButtons({
+                container:
+                    "#qualityGraphFilters",
+
+                target:
+                    "#qualityGraph",
+
+                chartId:
+                    "Q7",
+
+                filterId:
+                    "q7_type",
+
+                parameterName:
+                    "type",
+
+                includeAll:
+                    true,
+
+                allLabel:
+                    "ALL"
+            });
+
 
         /*
          * Q2 location filters.
@@ -112,6 +139,7 @@ document.addEventListener(
         function hideFilters() {
             q1Filters.hide();
             q2Filters.hide();
+            q7Filters.hide();
         }
 
 
@@ -164,6 +192,30 @@ document.addEventListener(
                 });
         }
 
+        function loadQ7Filters() {
+
+            q7Filters.refresh()
+                .then(function () {
+
+                    if (
+                        activeChartId
+                            === "Q7"
+                    ) {
+                        q7Filters.show();
+                    }
+                })
+                .catch(function (error) {
+
+                    console.error(
+                        "Could not load "
+                        + "Q7 filters:",
+                        error
+                    );
+
+                    q7Filters.hide();
+                });
+        }
+
 
         SQDIPCharts.mountButtons({
 
@@ -201,10 +253,15 @@ document.addEventListener(
                     }
 
                     else if (
-                        chartId
-                            === "Q2_grn"
+                        chartId === "Q2_grn"
                     ) {
                         loadQ2Filters();
+                    }
+
+                    else if (
+                        chartId === "Q7"
+                    ) {
+                        loadQ7Filters();
                     }
                 }
         });

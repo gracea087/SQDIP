@@ -84,13 +84,10 @@ FILTERS: dict[str, FilterDefinition] = {
                 ) AS label
 
             FROM [Pcubed].[dbo].[AllLiveGRN]
+
             WHERE
                 GRNLocation IS NOT NULL
-
-                AND LTRIM(
-                    RTRIM(GRNLocation)
-                ) <> ''
-
+                AND LTRIM(RTRIM(GRNLocation)) <> ''
                 AND GRNLocation LIKE 'MRB%'
 
             ORDER BY
@@ -98,23 +95,17 @@ FILTERS: dict[str, FilterDefinition] = {
         """
     ),
 
+
     "q1_type": FilterDefinition(
         sql="""
             SELECT
                 value,
                 label
 
-            FROM
-            (
+            FROM (
                 VALUES
-                    (
-                        'RETURN',
-                        'RETURN'
-                    ),
-                    (
-                        'REPAIR',
-                        'REPAIR'
-                    )
+                    ('RETURN', 'RETURN'),
+                    ('REPAIR', 'REPAIR')
             ) AS filters(
                 value,
                 label
@@ -122,6 +113,24 @@ FILTERS: dict[str, FilterDefinition] = {
         """
     ),
 
+
+    "q7_type": FilterDefinition(
+        sql="""
+            SELECT
+                value,
+                label
+
+            FROM (
+                VALUES
+                    ('Corrective', 'Corrective'),
+                    ('prevent', 'preventative'),
+                    ('Follow', 'Follow Up')
+            ) AS filters(
+                value,
+                label
+            );
+        """
+    ),
 }
 
 
@@ -149,6 +158,30 @@ def q2_location_parameters(
     return (
         "MR%",
     )
+
+    def q2_location_parameters(
+        args: Mapping[str, str]
+    ) -> tuple[str]:
+        location = (
+            args.get(
+                "Type",
+                ""
+            )
+            or ""
+        ).strip()
+
+
+        if location:
+            return (
+                f"%{Type}%",
+            )
+
+        # Default Q2 display:
+        # show all MR locations.
+        return (
+            "",
+        )
+
 def q1_type_parameters(
     args: Mapping[str, str]
 ) -> tuple[str]:
@@ -171,6 +204,28 @@ def q1_type_parameters(
             "%-REPAIR%",
         )
 
+    return (
+        "%",
+    )
+
+def q7_type_parameters(
+    args: Mapping[str, str]
+) -> tuple[str]:
+
+    q7_type = (
+        args.get(
+            "type",
+            ""
+        )
+        or ""
+    ).strip()
+
+    if q7_type:
+        return (
+            f"%{q7_type}%",
+        )
+
+    # ALL button
     return (
         "%",
     )
@@ -1076,6 +1131,295 @@ CHARTS: dict[str, ChartDefinition] = {
 
         x_label=
             "Days Lost",
+
+        formatter=
+            "integer",
+    ),
+    "Q7": ChartDefinition(
+        sql="""
+        SELECT
+            CONCAT([Type], ' ' , [NCR] , ' # ' , [Name]) AS y,
+            DATEDIFF(DAY,GETDATE(),Target) AS x,
+            Type,
+            employees.Name
+
+            FROM AllOpenNCRActions 
+            INNER JOIN employees ON AllOpenNCRActions.Who = employees.BadgeNo
+
+            WHERE ((DATEDIFF(DAY,GETDATE(),[Target]))<=7) 
+            AND [Type] Like ?
+
+            ORDER BY x DESC;
+        """,
+        title=
+            "NCR Actions Due within 7 Days",
+
+        x_label=
+            "Days Untill Due",
+
+        formatter=
+            "integer",
+        
+        parameters=q7_type_parameters,
+    ),
+    "Q6": ChartDefinition(
+        sql="""
+        SELECT
+            TOP 20 
+            CONCAT([NonCNo] , ' # ' , [NonCPartNo] , ' ~ ' , [Name]) AS y,
+            DATEDIFF(DAY,[NonCDate],GETDATE()) AS x,
+            0 AS targetStart,
+            30 AS target
+
+        FROM
+            (AllOpenNCR LEFT JOIN AllOpenNCRActions ON AllOpenNCR.NonCNo = AllOpenNCRActions.NCR)
+            LEFT JOIN employees ON AllOpenNCRActions.Who = employees.BadgeNo
+
+        WHERE
+            (((AllOpenNCRActions.Type) LIKE 'C%'
+            OR (AllOpenNCRActions.Type) LIKE 'P%'))
+
+        ORDER BY x DESC;
+        """,
+        title=
+            "Open NCR (Days) Top 20 With Open Actions (Pre/Cor)",
+
+        x_label=
+            "Days Open",
+
+        formatter=
+            "integer",
+    ),
+    "Q8": ChartDefinition(
+        sql="""
+        SELECT
+            CONCAT([ToolCompanySerialNo] , ' (' , [ToolNo] , ') ' , ' # ' , [Name] , ' # ' , [ToolLocation]) AS y,
+            DATEDIFF(DAY,GETDATE(),[ToolNextCalibration]) AS x
+        FROM
+            AllCalibration
+            LEFT JOIN employees ON AllCalibration.ToolResponsible = employees.BadgeNo
+        WHERE
+            (
+                (DATEDIFF(DAY,GETDATE(),[ToolNextCalibration]) <= 7)
+                AND (
+                    (AllCalibration.ToolLocation) NOT LIKE 'QUARANTINE'
+                    AND (AllCalibration.ToolLocation) NOT LIKE 'AWAITING REPAIR / CALIBRATION'
+                    AND (AllCalibration.ToolLocation) NOT LIKE 'SENT FOR CALIBRATION'
+                    AND (AllCalibration.ToolLocation) NOT LIKE 'RETURNED TO SUPPLIER'
+                    AND (AllCalibration.ToolLocation) NOT LIKE 'ARCHIVE'
+                    AND (AllCalibration.ToolLocation) NOT LIKE 'RETURNED TO CUSTOMER'
+                )
+                AND (
+                    (AllCalibration.CalibrationStatusDesc) <> 'closed'
+                )
+                AND ((AllCalibration.ToolRequiresCalibration) = 1)
+                AND ((AllCalibration.GroupName) = 'CALIBRATED')
+            )
+            OR (
+                (DATEDIFF(DAY,GETDATE(),[ToolNextCalibration]) <= 7)
+                AND ((AllCalibration.ToolLocation) IS NULL)
+                AND (
+                    (AllCalibration.CalibrationStatusDesc) <> 'closed'
+                )
+                AND ((AllCalibration.ToolRequiresCalibration) = 1)
+                AND ((AllCalibration.GroupName) = 'CALIBRATED')
+            )
+        ORDER BY x ASC;
+        """,
+         title=
+            "Calibration Due in Next 7 Days",
+
+        x_label=
+            "Days Untill Due",
+
+        formatter=
+            "integer",
+    ),
+    "Q8b": ChartDefinition(
+        sql="""
+        SELECT
+            CONCAT([ToolCompanySerialNo] , ' (' , [ToolNo] , ') ' , ' # ' , [Name] , ' # ' , [ToolLocation]) AS y,
+            DATEDIFF(DAY,GETDATE(),[ToolNextCalibration]) AS x
+        FROM
+            AllCalibration
+            LEFT JOIN employees ON AllCalibration.ToolResponsible = employees.BadgeNo
+        WHERE
+            ((DATEDIFF(DAY,GETDATE(),[ToolNextCalibration]) <= 7)
+                AND ((AllCalibration.GroupName) IS NULL)
+                AND ((AllCalibration.ToolLocation) NOT LIKE 'QUARANTINE'
+                AND (AllCalibration.ToolLocation) NOT LIKE 'AWAITING REPAIR / CALIBRATION'
+                AND (AllCalibration.ToolLocation) NOT LIKE 'SENT FOR CALIBRATION'
+                AND (AllCalibration.ToolLocation) NOT LIKE 'RETURNED TO SUPPLIER'
+                AND (AllCalibration.ToolLocation) NOT LIKE 'ARCHIVE'
+                AND (AllCalibration.ToolLocation) NOT LIKE 'RETURNED TO CUSTOMER')
+                AND ((AllCalibration.CalibrationStatusDesc) <> 'closed')
+                AND ((AllCalibration.ToolRequiresCalibration) = 1))
+            OR ((DATEDIFF(DAY,GETDATE(),[ToolNextCalibration]) <= 7)
+                AND ((AllCalibration.GroupName) IS NULL)
+                AND ((AllCalibration.ToolLocation) IS NULL)
+                AND ((AllCalibration.CalibrationStatusDesc) <> 'closed')
+                AND ((AllCalibration.ToolRequiresCalibration) = 1))
+        ORDER BY x ASC;
+        """,
+        title=
+            "Tooling Checks Due in Next 7 Days",
+
+        x_label=
+            "Days Untill Due",
+
+        formatter=
+            "integer",
+    ),
+    "P1": ChartDefinition(
+        sql="""
+        SELECT
+            CONCAT([WONo] , ' (' , [WOSchedStartDate] , ') : ' , [WOPartNo],40) AS y,
+            DATEDIFF(DAY,GETDATE(),[WOSchedStartDate]) AS x,
+            7 AS target,
+            0 AS targetStart
+
+        FROM
+            (worksOrder INNER JOIN AllItems ON worksOrder.WOPartNo = AllItems.PartNo)
+            LEFT JOIN PV601 ON worksOrder.WONo = PV601.WorksOrder
+
+        GROUP BY
+            worksOrder.WOSchedStartDate,
+            AllItems.StatusDescription,
+            worksOrder.WOQtyOS,
+            worksOrder.WOStatusDescription,
+            PV601.PrintedBy,
+            worksOrder.WOPartNo,
+            worksOrder.WOEarliestStartDate,
+            worksOrder.WONo
+
+        HAVING
+            (((worksOrder.WOSchedStartDate) >= GETDATE() -360 AND (worksOrder.WOSchedStartDate) <= GETDATE() + 28)
+                AND ((AllItems.StatusDescription) LIKE 'TO BE REVIEWED'
+                    OR (AllItems.StatusDescription) = 'IN DEV'
+                    OR (AllItems.StatusDescription) = 'ENGINEERING HOLD'
+                    OR (AllItems.StatusDescription) = 'NPI'
+                    OR (AllItems.StatusDescription) = 'CAUTION'
+                    OR (AllItems.StatusDescription) = 'DORMANT')
+                AND ((worksOrder.WOQtyOS) > 0)
+                AND ((worksOrder.WOStatusDescription) = 'WIP'
+                    OR (worksOrder.WOStatusDescription) = 'Created')
+                AND ((PV601.PrintedBy) IS NULL)
+                AND ((worksOrder.WOPartNo) NOT LIKE 'SMT ATTRITION'
+                    AND (worksOrder.WOPartNo) NOT LIKE '*REPAIR'
+                    AND (worksOrder.WOPartNo) NOT LIKE '*RETURN')
+                AND ((worksOrder.WOEarliestStartDate) NOT LIKE '12 / 12 / 2012'))
+
+        ORDER BY x ASC;
+        """,
+        title=
+            "TBR / IN-DEV / ENG-HOLD / NPI / CAUTION / DORMANT WO's",
+
+        x_label=
+            "Days Untill Start Date",
+
+        formatter=
+            "integer",
+    ),
+    "P2": ChartDefinition(
+        sql="""
+        SELECT
+            CONCAT([WONo] , ' (' , [WOSchedStartDate] , ') : ' , [WOPartNo],40) AS y,
+            DATEDIFF(DAY,GETDATE(),[WOSchedStartDate]) AS x,
+            0 as targetStart,
+            7 AS target
+        FROM
+            (worksOrder INNER JOIN AllItems ON worksOrder.WOPartNo = AllItems.PartNo)
+            LEFT JOIN PV601 ON worksOrder.WONo = PV601.WorksOrder
+        GROUP BY
+            AllItems.StatusDescription,
+            worksOrder.WOSchedStartDate,
+            worksOrder.WOQtyOS,
+            worksOrder.WOStatusDescription,
+            PV601.PrintedBy,
+            worksOrder.WOPartNo,
+            worksOrder.WOEarliestStartDate,
+            worksOrder.WONo
+        HAVING
+            (((AllItems.StatusDescription) <> 'TO BE REVIEWED'
+                AND (AllItems.StatusDescription) <> 'IN DEV'
+                AND (AllItems.StatusDescription) <> 'ENGINEERING HOLD'
+                AND (AllItems.StatusDescription) <> 'NPI'
+                AND (AllItems.StatusDescription) <> 'CAUTION'
+                AND (AllItems.StatusDescription) <> 'DORMANT')
+                AND ((worksOrder.WOSchedStartDate) >= GETDATE() -360
+                AND (worksOrder.WOSchedStartDate) <= GETDATE() + 28)
+                AND ((worksOrder.WOQtyOS) > 0)
+                AND ((worksOrder.WOStatusDescription) = 'WIP'
+                OR (worksOrder.WOStatusDescription) = 'Created')
+                AND ((PV601.PrintedBy) IS NULL)
+                AND ((worksOrder.WOPartNo) NOT LIKE '%FAI%'
+                AND (worksOrder.WOPartNo) NOT LIKE 'CONSUMABLE ISSUES'
+                AND (worksOrder.WOPartNo) NOT LIKE 'MONTHLY-LOST-STOCK-WRITE-OFF'
+                AND (worksOrder.WOPartNo) NOT LIKE 'PHOENIX-DELTA-FAIR-SUB'
+                AND (worksOrder.WOPartNo) NOT LIKE '%DELTA FAIR%'
+                AND (worksOrder.WOPartNo) NOT LIKE '%PHOENIX FAIR%'
+                AND (worksOrder.WOPartNo) NOT LIKE 'SMT ATTRITION'
+                AND (worksOrder.WOPartNo) NOT LIKE '%RETURN'
+                AND (worksOrder.WOPartNo) NOT LIKE '%REPAIR')
+                AND ((worksOrder.WOEarliestStartDate) NOT LIKE '12 / 12 / 2012'))
+        ORDER BY
+            worksOrder.WOSchedStartDate;
+        """,
+         title=
+            "WO's ready to Print - Due Within 28 Days",
+
+        x_label=
+            "Days Untill Start Date",
+
+        formatter=
+            "integer",
+    ),
+    "D12": ChartDefinition(
+        sql="""
+        WITH Qry_Exp_D12_SOHold AS
+            (SELECT
+                AllSO.SONo,
+                AllSO.SOCustID,
+                AllSO.SOLinePromisedDate,
+                AllSO.SODescription,
+                AllSO.SOLineQty,
+                AllSO.SOLineShipQty,
+                AllSO.SOLineNo
+            FROM
+                AllSO
+            GROUP BY
+                AllSO.SONo,
+                AllSO.SOCustID,
+                AllSO.SOLinePromisedDate,
+                AllSO.SODescription,
+                AllSO.SOLineQty,
+                AllSO.SOLineShipQty,
+                AllSO.SOLineNo
+            HAVING
+                (((AllSO.SOCustID) NOT LIKE 'MEG-VMI') AND ((AllSO.SODescription) = 'On Hold')))
+
+            SELECT
+                CONCAT([SONo] , ' (' , [SOCustID] , ') - ' , [SOLineNo]) AS y,
+                DATEDIFF(DAY,GETDATE(),[SOLinePromisedDate]) AS x
+            FROM
+                Qry_Exp_D12_SOHold
+            GROUP BY
+                SONo,
+                SOCustID,
+                SOLineNo,
+                SOLinePromisedDate,
+                Qry_Exp_D12_SOHold.SOCustID
+            HAVING
+                (
+                    ((Qry_Exp_D12_SOHold.SOCustID) NOT LIKE 'MEG-VMI')
+                )
+            ORDER BY x ASC;
+        """,
+        title=
+            "SO On Hold (Exc. MAV-VMI)",
+
+        x_label=
+            "Days Untill Promised Delivery",
 
         formatter=
             "integer",
