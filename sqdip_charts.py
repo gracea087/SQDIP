@@ -1479,6 +1479,35 @@ CHARTS: dict[str, ChartDefinition] = {
         formatter=
             "integer",
     ),
+    "P5": ChartDefinition(
+        sql="""
+        SELECT DISTINCT
+            CONCAT(enq.EnquiryNo,' ',enq.EnqCustID,' (S-)',followup.[Name]) AS y,
+            DATEDIFF(DAY,CAST(GETDATE() AS date), CAST(enq.EnqDecisionDate AS date)) AS x
+
+        FROM [Pcubed].[dbo].[AllEnq] AS enq
+        LEFT JOIN [Pcubed].[dbo].[employees] AS estimator
+            ON enq.EnqEstimator = estimator.BadgeNo
+        LEFT JOIN [Pcubed].[dbo].[employees] AS followup
+            ON enq.EnqFollowUpBy = followup.BadgeNo
+        LEFT JOIN [Pcubed].[dbo].[employees] AS salesrep
+            ON enq.EnqSalesRep = salesrep.BadgeNo
+
+        WHERE DATEDIFF(DAY,CAST(GETDATE() AS date),CAST(enq.EnqDecisionDate AS date)) <= 7
+            AND enq.EnqDecisionDate >= '2020-01-01'
+            AND enq.EnqStatus = '#Submitted'
+
+        ORDER BY x ASC;
+        """,
+        title=
+            "Enquiry Status - Submitted",
+
+        x_label=
+            "Days Untill Follow-Up Required",
+
+        formatter=
+            "integer",
+    ),
 }
 
 
