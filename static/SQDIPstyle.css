@@ -1019,6 +1019,43 @@ textarea:focus,
 }
 
 #inventoryGraph[
+    data-chart-id="I7"
+] {
+    --sqdip-positive-bar: var(--graph-main);
+    --sqdip-negative-bar: var(--graph-negative);
+
+    --sqdip-row-height: 45px;
+    --sqdip-left-label-width: 375px;
+
+    --sqdip-label-size: 13px;
+    --sqdip-value-size: 12px;
+}
+
+
+@media (max-width: 800px) {
+    .inventory-graph-panel {
+        width: calc(100% - 20px);
+        margin: 10px;
+        padding: 10px;
+    }
+
+
+    #inventoryGraph[
+        data-chart-id="I7"
+    ] {
+        --sqdip-row-height: 34px;
+        --sqdip-left-label-width: 135px;
+        --sqdip-label-size: 11px;
+        --sqdip-value-size: 10px;
+    }
+}
+
+#deliverablesGraph[data-chart-id="I7"] {
+    --sqdip-target-line: #181617;
+    --sqdip-target-line-width: 3px;
+}
+
+#inventoryGraph[
     data-chart-id="I8"
 ] {
     --sqdip-positive-bar: var(--graph-main);

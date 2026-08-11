@@ -943,13 +943,20 @@ CHARTS: dict[str, ChartDefinition] = {
             DATEDIFF(DAY,[GRNDateReceived],GETDATE()) AS x,
             5 AS Target
         FROM
-            (AllLiveGRN LEFT JOIN AllItems ON AllLiveGRN.GRNPartNo = AllItems.PartNo)
+            [Pcubed].[dbo].[AllLiveGRN] 
+            LEFT JOIN AllItems ON AllLiveGRN.GRNPartNo = AllItems.PartNo
             LEFT JOIN AllWOPartDemand ON AllLiveGRN.GRNPartNo = AllWOPartDemand.PartNo
-
         WHERE
-            (((AllLiveGRN.GRNRequiresRelease) = 1)
-                AND ((AllLiveGRN.GRNLocation) NOT LIKE 'MRB%'
-                    AND (AllLiveGRN.GRNLocation) NOT LIKE 'GREY MARKET INSPECTION'))
+        AllLiveGRN.GRNRequiresRelease = 1
+                AND AllLiveGRN.GRNLocation NOT LIKE 'MRB%'
+                    AND AllLiveGRN.GRNLocation <> 'GREY MARKET INSPECTION'
+        GROUP BY
+            AllLiveGRN.GRNNo,
+            AllLiveGRN.GRNPartNo,
+            AllItems.PartDescription,
+            AllLiveGRN.GRNDateReceived,
+            AllWOPartDemand.PartNo
+
         ORDER BY x DESC;
         """,
         title=
@@ -957,6 +964,118 @@ CHARTS: dict[str, ChartDefinition] = {
 
         x_label=
             "Days In WIP",
+
+        formatter=
+            "integer",
+    ),
+    "I7": ChartDefinition(
+        sql="""
+        SELECT
+            CONCAT(
+                als.GRNNo,
+                '(X',
+                grn.GRNQtyLeft,
+                ' <> £',
+                ROUND(
+                    TRY_CONVERT(
+                        decimal(18, 2),
+                        grn.GRNQtyLeft
+                    )
+                    *
+                    TRY_CONVERT(
+                        decimal(18, 2),
+                        grn.GRNUnitCost
+                    ),
+                    0
+                ),
+                ') ',
+                grn.GRNPartNo
+            ) AS y,
+
+            CASE
+                WHEN TRY_CONVERT(
+                    decimal(18, 2),
+                    als.[LOST STOCK - RED]
+                ) <> 0
+                THEN TRY_CONVERT(
+                    decimal(18, 2),
+                    als.[LOST STOCK - RED]
+                )
+
+                WHEN TRY_CONVERT(
+                    decimal(18, 2),
+                    als.[LOST STOCK - AMBER]
+                ) <> 0
+                THEN TRY_CONVERT(
+                    decimal(18, 2),
+                    als.[LOST STOCK - AMBER]
+                )
+
+                WHEN TRY_CONVERT(
+                    decimal(18, 2),
+                    als.[LOST STOCK - GREEN]
+                ) <> 0
+                THEN TRY_CONVERT(
+                    decimal(18, 2),
+                    als.[LOST STOCK - GREEN]
+                )
+
+                ELSE 0
+            END AS x,
+
+
+            CASE
+                WHEN TRY_CONVERT(
+                    decimal(18, 2),
+                    als.[LOST STOCK - RED]
+                ) <> 0
+                THEN 'lost-stock-red'
+
+                WHEN TRY_CONVERT(
+                    decimal(18, 2),
+                    als.[LOST STOCK - AMBER]
+                ) <> 0
+                THEN 'lost-stock-amber'
+
+                WHEN TRY_CONVERT(
+                    decimal(18, 2),
+                    als.[LOST STOCK - GREEN]
+                ) <> 0
+                THEN 'lost-stock-green'
+
+                ELSE 'lost-stock-unknown'
+            END AS className,
+
+            30 AS target
+
+        FROM [Pcubed].[dbo].[AllLostStock] AS als
+
+        LEFT JOIN [Pcubed].[dbo].[AllLiveGRN] AS grn
+            ON als.GRNNo = grn.GRNNo
+            AND als.GRNLineNo = grn.GRNLineNo
+
+        LEFT JOIN [Pcubed].[dbo].[AllGRN_Transfer] AS tr
+            ON als.GRNNo = tr.TransferGRNNo
+            AND als.GRNLineNo = tr.TranferGRNLineNo
+
+        GROUP BY
+            als.GRNNo,
+            grn.GRNQtyLeft,
+            grn.GRNUnitCost,
+            grn.GRNPartNo,
+            als.[LOST STOCK - AMBER],
+            als.[LOST STOCK - GREEN],
+            als.[LOST STOCK - RED],
+            als.MaxOfTransferDate
+
+        ORDER BY
+            als.MaxOfTransferDate;
+        """,
+        title=
+            "LOST STOCK Location (Days)",
+
+        x_label=
+            "Days Lost",
 
         formatter=
             "integer",

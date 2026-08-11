@@ -3,6 +3,7 @@
 document.addEventListener(
     "DOMContentLoaded",
     function () {
+
         const graphPanel =
             document.getElementById(
                 "inventoryGraphPanel"
@@ -13,14 +14,20 @@ document.addEventListener(
                 "inventoryGraph"
             );
 
+        const graphColourIndicator =
+            document.getElementById(
+                "graphColourIndicator"
+            );
+
 
         if (
             !graphPanel
             || !graphTarget
+            || !graphColourIndicator
         ) {
             console.error(
                 "The inventory graph "
-                + "panel could not be found."
+                + "elements could not be found."
             );
 
             return;
@@ -28,8 +35,8 @@ document.addEventListener(
 
 
         if (
-            typeof SQDIPCharts ===
-            "undefined"
+            typeof SQDIPCharts
+                === "undefined"
         ) {
             console.error(
                 "sqdip-charts.js "
@@ -41,6 +48,7 @@ document.addEventListener(
 
 
         SQDIPCharts.mountButtons({
+
             target:
                 "#inventoryGraph",
 
@@ -54,10 +62,26 @@ document.addEventListener(
             autoLoad:
                 false,
 
+
             onBeforeLoad:
-                function () {
+                function ({
+                    chartId,
+                    button
+                }) {
+
                     graphPanel.hidden =
                         false;
+
+
+                    /*
+                     * Show Lost Stock colour
+                     * legend only for charts
+                     * marked as lost-stock.
+                     */
+                    graphColourIndicator.hidden =
+                        button.dataset
+                            .colourIndicator
+                        !== "lost-stock";
                 }
         });
     }

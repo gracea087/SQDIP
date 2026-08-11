@@ -3,7 +3,11 @@
  * Override the variables in a page-specific CSS selector instead of editing
  * the library file whenever possible.
  */
-
+:root {
+    --graph-green: #00c853;
+    --graph-amber: #ff9800;
+    --graph-red: #f00000;
+}
 .sqdip-chart {
     --sqdip-background: #ffffff;
     --sqdip-text: #1f2933;
@@ -18,6 +22,10 @@
     --sqdip-centre-label-background: #ffffff;
     --sqdip-centre-label-border: #cbd2d9;
     --sqdip-error: #b42318;
+    --graph-green: #50ad3e;
+    --graph-amber: #eba627;
+    --graph-red: #ee3427;
+
 
     --sqdip-target-line: #fd3f6e;
     --sqdip-target-line-width: 2px;
@@ -406,4 +414,154 @@
     stroke: #ff0000;
     stroke-width: 4px;
     pointer-events: none;
+}
+
+.graph-colour-indicator {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+
+    margin: 8px 0 12px 0;
+}
+
+.graph-colour-indicator[hidden] {
+    display: none;
+}
+
+.graph-colour-key {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    font-weight: 600;
+}
+
+.graph-colour-box {
+    width: 14px;
+    height: 14px;
+
+    border: 1px solid #000;
+}
+
+.graph-colour-key--green
+.graph-colour-box {
+    background-color:
+        var(--graph-green);
+}
+
+.graph-colour-key--amber
+.graph-colour-box {
+    background-color:
+        var(--graph-amber);
+}
+
+.graph-colour-key--red
+.graph-colour-box {
+    background-color:
+        var(--graph-red);
+}
+
+.graph-colour-key--target
+.graph-colour-box {
+    background-color: transparent;
+    border: 2px solid #000;
+}
+
+/* I7 Lost Stock bar colours */
+
+.sqdip-chart__bar.lost-stock-green {
+    fill: var(--graph-green);
+}
+
+.sqdip-chart__bar.lost-stock-amber {
+    fill: var(--graph-amber);
+}
+
+.sqdip-chart__bar.lost-stock-red {
+    fill: var(--graph-red);
+}
+
+
+/* I7 legend */
+
+.graph-colour-indicator {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+
+    margin: 8px 0 12px 0;
+}
+
+.graph-colour-indicator[hidden] {
+    display: none;
+}
+
+.graph-colour-key {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    font-weight: 600;
+}
+
+.graph-colour-box {
+    width: 14px;
+    height: 14px;
+
+    display: inline-block;
+
+    border: 1px solid #000000;
+}
+
+
+/* GREEN */
+
+.graph-colour-key--green
+.graph-colour-box {
+    background-color:
+        var(--graph-green);
+}
+
+
+/* AMBER */
+
+.graph-colour-key--amber
+.graph-colour-box {
+    background-color:
+        var(--graph-amber);
+}
+
+
+/* RED */
+
+.graph-colour-key--red
+.graph-colour-box {
+    background-color:
+        var(--graph-red);
+}
+
+
+/* TARGET */
+
+.graph-colour-key--target
+.graph-colour-box {
+    background-color:
+        transparent;
+
+    border:
+        3px solid #000000;
+}
+
+.sqdip-chart__bar.sqdip-chart__bar--positive.lost-stock-green {
+    fill: var(--graph-green);
+}
+
+.sqdip-chart__bar.sqdip-chart__bar--positive.lost-stock-amber {
+    fill: var(--graph-amber);
+}
+
+.sqdip-chart__bar.sqdip-chart__bar--positive.lost-stock-red {
+    fill: var(--graph-red);
 }

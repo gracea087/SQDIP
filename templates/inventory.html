@@ -14,7 +14,7 @@
 <br>
 <button id="I6" type="button" data-sqdip-chart="I6_location">I6</button>
 <br>
-<button id="I7" type="button">I7</button>
+<button id="I7" type="button" data-sqdip-chart="I7" data-colour-indicator="lost-stock">I7</button>
 <br>
 <button id="I8" type="button" data-sqdip-chart="I8">I8</button>
 <br>
@@ -32,6 +32,68 @@
 <br>
 <button id="I15" type="button">I15</button>
 </div>
+
+<div
+    id="graphColourIndicator"
+    class="graph-colour-indicator"
+    hidden
+>
+    <span
+        class="
+            graph-colour-key
+            graph-colour-key--green
+        "
+    >
+        <span
+            class="graph-colour-box"
+        ></span>
+
+        LOST STOCK - GREEN
+    </span>
+
+
+    <span
+        class="
+            graph-colour-key
+            graph-colour-key--amber
+        "
+    >
+        <span
+            class="graph-colour-box"
+        ></span>
+
+        LOST STOCK - AMBER
+    </span>
+
+
+    <span
+        class="
+            graph-colour-key
+            graph-colour-key--red
+        "
+    >
+        <span
+            class="graph-colour-box"
+        ></span>
+
+        LOST STOCK - RED
+    </span>
+
+
+    <span
+        class="
+            graph-colour-key
+            graph-colour-key--target
+        "
+    >
+        <span
+            class="graph-colour-box"
+        ></span>
+
+        TARGET
+    </span>
+</div>
+
 
 <section
     id="inventoryGraphPanel"
