@@ -1850,6 +1850,87 @@ CHARTS: dict[str, ChartDefinition] = {
         formatter=
             "integer",
     ),
+    "I14": ChartDefinition(
+        sql="""
+        ;WITH Qry_I14_StockGRNUnitCost AS
+        (SELECT
+            grn.GRNPartNo,
+            grn.GRNNo,
+            SUM(TRY_CONVERT(decimal(18, 4),grn.GRNQtyLeft)) AS GRNSumQtyLeft,
+            MAX(TRY_CONVERT(decimal(18, 4),grn.GRNUnitCost)) AS GRNMaxUnitCost
+            FROM [Pcubed].[dbo].[AllLiveGRN] AS grn
+            WHERE grn.GRNPartNo IS NOT NULL
+            GROUP BY grn.GRNPartNo,grn.GRNNo),
+
+
+        Qry_Exp_I14_StockZeroWOBomQtyByPartGRN AS
+        (SELECT
+            wob.WOBOMChildPartNo,
+            items.PartDescription,
+            items.PartDefLocation,
+            COUNT(wob.WONo) AS CountOfWONo,
+            items.PartGroupCode,
+            grn.GRNNo,
+            grn.GRNSumQtyLeft,
+            grn.GRNMaxUnitCost,
+            ROUND(grn.GRNSumQtyLeft * grn.GRNMaxUnitCost,0 ) AS ApproxSurplusCost
+            FROM [Pcubed].[dbo].[worksOrderBOM] AS wob
+            INNER JOIN [Pcubed].[dbo].[AllItems] AS items
+                ON wob.WOBOMChildPartNo= items.PartNo
+            INNER JOIN [Pcubed].[dbo].[worksOrder] AS wo
+                ON wob.WONo = wo.WONo
+            INNER JOIN Qry_I14_StockGRNUnitCost AS grn
+                ON wob.WOBOMChildPartNo= grn.GRNPartNo
+            WHERE wo.WOStatusDescription <> 'Completed'
+                AND items.PartMainlyPurchased = 1
+                AND (wo.WOQty - wo.WOQtyOS) = 0
+                AND items.PartGroupCode NOT LIKE 'CONSUMABLE%'
+                AND grn.GRNSumQtyLeft > 0
+                AND wob.WOBOMQty = 0
+                AND wob.WOBOMChildPartNo <> 'DNF'
+                AND ROUND( grn.GRNSumQtyLeft  * grn.GRNMaxUnitCost,0) > 20
+            GROUP BY
+                wob.WOBOMChildPartNo,
+                items.PartDescription,
+                items.PartDefLocation,
+                items.PartGroupCode,
+                grn.GRNNo,
+                grn.GRNSumQtyLeft,
+                grn.GRNMaxUnitCost,
+                wob.WOBOMQty),
+
+        Qry_Exp_I14 AS
+        (SELECT
+            stock.WOBOMChildPartNo,
+            stock.PartDescription,
+            stock.CountOfWONo,
+            SUM(stock.GRNSumQtyLeft) AS SumOfGRNSumQtyLeft,
+            SUM(stock.ApproxSurplusCost) AS SumOfApproxSurplusCost
+            FROM Qry_Exp_I14_StockZeroWOBomQtyByPartGRN AS stock
+            GROUP BY
+                stock.WOBOMChildPartNo,
+                stock.PartDescription,
+                stock.CountOfWONo)
+
+
+        SELECT TOP (20)
+            result.WOBOMChildPartNo AS y,
+            result.SumOfApproxSurplusCost AS x
+
+        FROM Qry_Exp_I14 AS result
+
+        ORDER BY
+            result.SumOfApproxSurplusCost DESC;
+        """,
+         title=
+            "Zero Qty WO Items with current stock > £20 (Top 20 by value)",
+
+        x_label=
+            "value (£)",
+
+        formatter=
+            "integer",
+    ),
 }
 
 
