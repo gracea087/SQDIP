@@ -2102,49 +2102,19 @@ CHARTS: dict[str, ChartDefinition] = {
     "D9": ChartDefinition(
         sql="""
         SELECT DISTINCT
-            CONCAT(
-                po.PONum,
-                '/',
-                po.PODetItemNum,
-                ' <',
-                emp.[Name],
-                '>'
-            ) AS y,
-
-            DATEDIFF(
-                DAY,
-                CAST(GETDATE() AS date),
-                po.PODetDatePromised
-            ) AS x
-
+            CONCAT(po.PONum,'/', po.PODetItemNum,' <',emp.[Name], '>') AS y,
+            DATEDIFF(DAY,CAST(GETDATE() AS date),po.PODetDatePromised) AS x
         FROM [Pcubed].[dbo].[AllLivePO] AS po
-
         INNER JOIN [Pcubed].[dbo].[AllItems] AS items
             ON po.PODetPart = items.PartNo
-
         INNER JOIN [Pcubed].[dbo].[employees] AS emp
             ON po.POBuyer = emp.BadgeNo
-
         INNER JOIN [Pcubed].[dbo].[OOB-TRACKER-RECEIVED] AS oob
             ON po.POSuppAddressName = oob.SuppName
-
-        WHERE
-            DATEDIFF(
-                DAY,
-                CAST(GETDATE() AS date),
-                po.PODetDatePromised
-            ) <= 14
-
-            AND (
-                po.PODetQtyReq
-                - po.PODetQtyRec
-            ) > 0
-
-            AND (
-                po.PODetDateLatest IS NULL
-
-                OR CAST(
-                    po.PODetDateLatest AS date
+        WHERE DATEDIFF(DAY,CAST(GETDATE() AS date),po.PODetDatePromised) <= 14
+            AND (po.PODetQtyReq- po.PODetQtyRec) > 0
+            AND (po.PODetDateLatest IS NULL
+                OR CAST(po.PODetDateLatest AS date
                 ) NOT IN
                 (
                     '2001-01-01',
@@ -2156,15 +2126,10 @@ CHARTS: dict[str, ChartDefinition] = {
                     '2009-09-09',
                     '2008-08-08',
                     '2002-02-02'
-                )
-            )
+                ))
 
-            AND (
-                po.PODetDatePromised IS NULL
-
-                OR CAST(
-                    po.PODetDatePromised AS date
-                ) NOT IN
+            AND (po.PODetDatePromised IS NULL
+                OR CAST( po.PODetDatePromised AS date) NOT IN
                 (
                     '2001-01-01',
                     '2018-12-31',
@@ -2175,13 +2140,10 @@ CHARTS: dict[str, ChartDefinition] = {
                     '2009-09-09',
                     '2008-08-08',
                     '2002-02-02'
-                )
-            )
+                ))
 
             AND oob.RECEIVED = 'N'
-
-        ORDER BY
-            x ASC;
+        ORDER BY x ASC;
 
         """,
         title=
