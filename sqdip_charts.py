@@ -1931,6 +1931,56 @@ CHARTS: dict[str, ChartDefinition] = {
         formatter=
             "integer",
     ),
+    "I13": ChartDefinition(
+        sql="""
+        ;WITH Qry_I13_2_SelectPartIssueWoBom AS
+        (SELECT
+            bom.WONo,
+            bom.WOPartNo,
+            COUNT(bom.WOBOMChildPartNo) AS QtyItemsPartialKit
+            FROM [Pcubed].[dbo].[worksOrderBOM] AS bom
+                INNER JOIN [Pcubed].[dbo].[AllItems] AS items
+                    ON bom.WOBOMChildPartNo = items.PartNo
+            WHERE bom.WOBOMTotalRequired > 0
+                AND bom.WOQtyIssuedToDate
+                    < bom.WOBOMTotalRequired
+                AND bom.WOQtyIssuedToDate >= 0
+                AND items.PartGroupCode
+                    NOT LIKE 'CONSUMABLE%'
+            GROUP BY
+                bom.WONo,
+                bom.WOPartNo),
+
+        Qry_I13_3_ListWoWithPartialKitComp AS
+        (SELECT
+            partial.WONo,
+            partial.WOPartNo,
+            partial.QtyItemsPartialKit
+            FROM Qry_I13_2_SelectPartIssueWoBom AS partial
+                INNER JOIN [Pcubed].[dbo].[worksOrder] AS wo
+                    ON partial.WONo = wo.WONo
+            WHERE
+                wo.WOStatusDescription = 'Completed'
+                AND partial.QtyItemsPartialKit > 0)
+
+        SELECT
+            WONo AS y,
+            QtyItemsPartialKit AS x
+
+        FROM Qry_I13_3_ListWoWithPartialKitComp
+
+        ORDER BY
+            QtyItemsPartialKit DESC;
+        """,
+        title=
+            "WO Completed with OS Material Issues",
+
+        x_label=
+            "QTY",
+
+        formatter=
+            "integer",
+    ),
 }
 
 
