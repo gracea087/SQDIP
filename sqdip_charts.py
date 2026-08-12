@@ -1659,6 +1659,43 @@ CHARTS: dict[str, ChartDefinition] = {
             "leftLabelWidth": "auto"
         }
     ),
+    "I9": ChartDefinition(
+        sql="""
+        WITH Qry_WORecDate AS
+            (SELECT
+                AllWORec.GRNWO,
+                worksOrder.WOQty,
+                Sum(AllWORec.GRNQtyReceived) AS SumOfGRNQtyReceived,
+                Max(AllWORec.GRNDateReceived) AS MaxOfGRNDateReceived
+            FROM
+                AllWORec
+                LEFT JOIN worksOrder ON AllWORec.GRNWO = worksOrder.WONo
+            GROUP BY
+                AllWORec.GRNWO,
+                worksOrder.WOQty)
+
+
+        SELECT
+            CONCAT([WONo] , ' # ' , [WOPartNo]) AS y,
+            DATEDIFF(DAY,[MaxOfGRNDateReceived],GETDATE()) AS x
+        FROM
+            (worksOrder LEFT JOIN AllItems ON worksOrder.WOPartNo = AllItems.PartNo)
+            INNER JOIN Qry_WORecDate ON worksOrder.WONo = Qry_WORecDate.GRNWO
+        WHERE
+            (((worksOrder.WOQtyOS) = 0)
+            AND ((worksOrder.WOStatusDescription) NOT LIKE 'Completed')
+            AND ((worksOrder.WOPartNo) NOT LIKE 'PROCEDURES'))
+        ORDER BY x DESC;
+        """,
+        title=
+            "WIP - Open Works Orders with Zero O/S Qty",
+
+        x_label=
+            "Days Since Last Receipt",
+
+        formatter=
+            "integer",
+    ),
 }
 
 
