@@ -1541,13 +1541,45 @@ textarea:focus,
 }
 
 #productivityGraph[
+    data-chart-id="P12"
+] {
+    --sqdip-positive-bar: var(--graph-main);
+    --sqdip-negative-bar: var(--graph-negative);
+
+    --sqdip-row-height: 28px;
+    --sqdip-left-label-width: 460px;
+
+    --sqdip-label-size: 13px;
+    --sqdip-value-size: 12px;
+}
+
+
+@media (max-width: 800px) {
+    .productivity-graph-panel {
+        width: calc(100% - 20px);
+        margin: 10px;
+        padding: 10px;
+    }
+
+
+    #productivityGraph[
+        data-chart-id="P12"
+    ] {
+        --sqdip-row-height: 34px;
+        --sqdip-left-label-width: 135px;
+        --sqdip-label-size: 11px;
+        --sqdip-value-size: 10px;
+    }
+}
+
+#productivityGraph[
     data-chart-id="p13_coshh"
 ] {
     --sqdip-positive-bar: var(--graph-main);
     --sqdip-negative-bar: var(--graph-negative);
 
     --sqdip-row-height: 28px;
-    --sqdip-left-label-width: 230px;
+    --sqdip-left-label-width: 100px;
 
     --sqdip-label-size: 13px;
     --sqdip-value-size: 12px;

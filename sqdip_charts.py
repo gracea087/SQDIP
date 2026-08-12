@@ -131,6 +131,64 @@ FILTERS: dict[str, FilterDefinition] = {
             );
         """
     ),
+
+    "p12_training": FilterDefinition(
+        sql="""
+            SELECT DISTINCT
+                LTRIM(
+                    RTRIM(
+                        CAST(
+                            training.[Areas_of_Experience]
+                            AS varchar(255)
+                        )
+                    )
+                ) AS value,
+
+                LTRIM(
+                    RTRIM(
+                        CAST(
+                            training.[Areas_of_Experience]
+                            AS varchar(255)
+                        )
+                    )
+                ) AS label
+
+            FROM [Pcubed].[dbo].[AllTraining]
+                AS training
+
+            INNER JOIN [Pcubed].[dbo].[employees]
+                AS employee
+                ON training.[BadgeNo_IDFK]
+                    = employee.BadgeNo
+
+            WHERE
+                training.[Areas_of_Experience]
+                    IS NOT NULL
+
+                AND LTRIM(
+                    RTRIM(
+                        CAST(
+                            training.[Areas_of_Experience]
+                            AS varchar(255)
+                        )
+                    )
+                ) <> ''
+
+                -- Must actually qualify for P12
+                AND training.Result = 1
+
+                AND employee.EmployeeStatusID <> 15
+
+                AND DATEDIFF(
+                    DAY,
+                    training.[Course_Date],
+                    CAST(GETDATE() AS date)
+                ) > 180
+
+            ORDER BY
+                label;
+        """
+    ),
 }
 
 
@@ -226,6 +284,30 @@ def q7_type_parameters(
         )
 
     # ALL button
+    return (
+        "%",
+    )
+
+def p12_training_parameters(
+    args: Mapping[str, str]
+) -> tuple[str]:
+
+    area = (
+        args.get(
+            "area",
+            ""
+        )
+        or ""
+    ).strip()
+
+
+    if area:
+        return (
+            area,
+        )
+
+
+    # ALL AREAS
     return (
         "%",
     )
@@ -1507,6 +1589,75 @@ CHARTS: dict[str, ChartDefinition] = {
 
         formatter=
             "integer",
+    ),
+    "P12": ChartDefinition(
+        sql="""
+            SELECT
+                CONCAT(
+                    training.[Training_Course],
+                    ' (',
+                    training.[Name],
+                    ')'
+                ) AS y,
+
+                DATEDIFF(
+                    DAY,
+                    training.[Course_Date],
+                    CAST(GETDATE() AS date)
+                ) AS x
+
+            FROM [Pcubed].[dbo].[AllTraining]
+                AS training
+
+            INNER JOIN [Pcubed].[dbo].[employees]
+                AS employee
+
+                ON training.[BadgeNo_IDFK]
+                    = employee.BadgeNo
+
+            WHERE
+                training.[Areas_of_Experience]
+                    LIKE ?
+
+                AND training.Result = 1
+
+                AND employee.EmployeeStatusID
+                    <> 15
+
+                AND DATEDIFF(
+                    DAY,
+                    training.[Course_Date],
+                    CAST(GETDATE() AS date)
+                ) > 180
+
+            GROUP BY
+                training.[Training_Course],
+                training.[Name],
+                training.[Course_Date],
+                training.[Areas_of_Experience],
+                training.Result,
+                employee.EmployeeStatusID
+
+            ORDER BY
+                training.[Areas_of_Experience],
+                x DESC;
+        """,
+
+        title=
+            "Training Over 180 Days",
+
+        x_label=
+            "Days Since Training",
+
+        formatter=
+            "integer",
+
+        parameters=
+            p12_training_parameters,
+
+        meta={
+            "leftLabelWidth": "auto"
+        }
     ),
 }
 

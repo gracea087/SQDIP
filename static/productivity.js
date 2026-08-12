@@ -3,6 +3,7 @@
 document.addEventListener(
     "DOMContentLoaded",
     function () {
+
         const graphPanel =
             document.getElementById(
                 "productivityGraphPanel"
@@ -13,14 +14,20 @@ document.addEventListener(
                 "productivityGraph"
             );
 
+        const filterContainer =
+            document.getElementById(
+                "productivityGraphFilters"
+            );
+
 
         if (
             !graphPanel
             || !graphTarget
+            || !filterContainer
         ) {
             console.error(
                 "The Productivity graph "
-                + "panel could not be found."
+                + "elements could not be found."
             );
 
             return;
@@ -28,8 +35,8 @@ document.addEventListener(
 
 
         if (
-            typeof SQDIPCharts ===
-            "undefined"
+            typeof SQDIPCharts
+                === "undefined"
         ) {
             console.error(
                 "sqdip-charts.js "
@@ -40,7 +47,71 @@ document.addEventListener(
         }
 
 
+        let activeChartId =
+            null;
+
+
+            /*
+         * p12 location filters.
+         */
+        const p12Filters =
+            SQDIPCharts.mountFilterButtons({
+
+                container:
+                    "#productivityGraphFilters",
+
+                target:
+                    "#productivityGraph",
+
+                chartId:
+                    "P12",
+
+                filterId:
+                    "p12_training",
+
+                parameterName:
+                    "area",
+
+                includeAll:
+                    true,
+
+                allLabel:
+                    "ALL AREAS"
+            });
+
+
+        function hideFilters() {
+            p12Filters.hide();
+        }
+
+
+        function loadP12Filters() {
+
+            p12Filters.refresh()
+                .then(function () {
+
+                    if (
+                        activeChartId
+                            === "P12"
+                    ) {
+                        p12Filters.show();
+                    }
+                })
+                .catch(function (error) {
+
+                    console.error(
+                        "Could not load "
+                        + "P12 filters:",
+                        error
+                    );
+
+                    p12Filters.hide();
+                });
+        }
+
+
         SQDIPCharts.mountButtons({
+
             target:
                 "#productivityGraph",
 
@@ -55,9 +126,23 @@ document.addEventListener(
                 false,
 
             onBeforeLoad:
-                function () {
+                function ({
+                    chartId
+                }) {
+
+                    activeChartId =
+                        chartId;
+
                     graphPanel.hidden =
                         false;
+
+                    hideFilters();
+
+                    if (
+                        chartId === "P12"
+                    ) {
+                        loadP12Filters();
+                    }
                 }
         });
     }

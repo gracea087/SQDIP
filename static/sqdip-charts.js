@@ -2233,13 +2233,55 @@
                     "--sqdip-right-value-width",
                     120
                 );
-            const configuredLeftWidth =
-                this.options.leftLabelWidth
-                ?? cssNumber(
-                    this.target,
-                    "--sqdip-left-label-width",
-                    190
-                );
+            let configuredLeftWidth;
+                /*
+                * Automatically size the Y-axis label
+                * area from the longest label currently
+                * displayed on the graph.
+                */
+                if (
+                    this.options.leftLabelWidth
+                        === "auto"
+                ) {
+                    const longestLabelLength =
+                        Math.max(
+                            0,
+                            ...this.rows.map(
+                                row =>
+                                    String(
+                                        row.label ?? ""
+                                    ).length
+                            )
+                        );
+
+
+                    /*
+                    * Approximate text width.
+                    *
+                    * Minimum = 180px
+                    * Maximum = 650px
+                    */
+                    configuredLeftWidth =
+                        Math.min(
+                            650,
+                            Math.max(
+                                180,
+                                (
+                                    longestLabelLength
+                                    * 7.2
+                                ) + 25
+                            )
+                        );
+                }
+                else {
+                    configuredLeftWidth =
+                        this.options.leftLabelWidth
+                        ?? cssNumber(
+                            this.target,
+                            "--sqdip-left-label-width",
+                            190
+                        );
+                }
 
             const configuredRightWidth =
                 this.options.rightLabelWidth
