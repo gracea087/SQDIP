@@ -1981,6 +1981,125 @@ CHARTS: dict[str, ChartDefinition] = {
         formatter=
             "integer",
     ),
+    "D3a": ChartDefinition(
+        sql="""
+        SELECT
+            CONCAT(
+                po.PONum,
+                '/',
+                po.PODetItemNum,
+                ' # ',
+                items.PartNo,
+                ' # £',
+                po.PODetUnitPrice * po.PODetQtyReq,
+                ' (',
+                emp.[Name],
+                ')'
+            ) AS y,
+
+            DATEDIFF(
+                DAY,
+                CAST(GETDATE() AS date),
+                required.RequiredDate
+            ) AS [x],
+
+            DATEDIFF(
+                DAY,
+                CAST(GETDATE() AS date),
+                po.PODetDatePromised
+            ) AS target,
+
+            po.PODetUnitPrice
+                * po.PODetQtyReq AS [Value],
+
+            0 AS targetStart
+
+        FROM [Pcubed].[dbo].[AllLivePO] AS po
+
+        LEFT JOIN [Pcubed].[dbo].[allItems] AS items
+            ON po.PODetPart = items.PartNo
+
+        LEFT JOIN [Pcubed].[dbo].[employees] AS emp
+            ON po.POBuyer = emp.BadgeNo
+
+        LEFT JOIN [Pcubed].[dbo].[SQDIP_PONoDemandOK] AS demandOK
+            ON po.PONum = demandOK.PO
+            AND po.PODetItemNum = demandOK.Line
+
+
+        CROSS APPLY
+        (
+            SELECT
+                CASE
+
+                    WHEN items.MinOfWOSchedStartDate IS NULL
+                        THEN items.MinOfSOLinePromisedDate
+
+                    WHEN items.MinOfSOLinePromisedDate
+                            < items.MinOfWOSchedStartDate
+                        THEN items.MinOfSOLinePromisedDate
+
+                    ELSE items.MinOfWOSchedStartDate
+
+                END AS RequiredDate
+        ) AS required
+
+
+        WHERE
+            DATEDIFF(
+                DAY,
+                CAST(GETDATE() AS date),
+                required.RequiredDate
+            ) >= 28
+
+            AND (
+                po.PODetUnitPrice
+                * po.PODetQtyReq
+            ) > 100
+
+            AND po.PODetDatePromised NOT IN
+            (
+                '2008-08-08',
+                '2018-12-25',
+                '2018-12-31',
+                '2018-04-01',
+                '2001-01-01'
+            )
+
+            AND (
+                COALESCE(
+                    items.DemandSO,
+                    0
+                )
+                +
+                COALESCE(
+                    items.DemandWO,
+                    0
+                )
+            ) > 0
+
+            AND required.RequiredDate
+                > DATEADD(
+                    DAY,
+                    28,
+                    po.PODetDatePromised
+                )
+
+            AND demandOK.PO IS NULL
+
+
+        ORDER BY x DESC;
+        """,
+        title=
+            "PO's With Promised Date over 4 Weeks before Demand > £100",
+
+        x_label=
+            "Days",
+
+        formatter=
+            "integer",
+    ),
+    
 }
 
 
