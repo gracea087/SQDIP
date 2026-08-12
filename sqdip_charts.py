@@ -1696,6 +1696,160 @@ CHARTS: dict[str, ChartDefinition] = {
         formatter=
             "integer",
     ),
+    "P11": ChartDefinition(
+        sql="""
+        WITH Qry_Exp_P11_DFM AS (
+            SELECT
+                CONCAT([DocNo],' ',[Type],' ',[PartNo],' (',[Who],')' ) AS y,
+                DATEDIFF(DAY,[DateCreated],GETDATE()) AS x,
+                PV760_DFM.PartNo,
+                PV760_DFM.Customer
+
+            FROM PV760_DFM
+
+            WHERE [DateCreated] IS NOT NULL
+                AND PV760_DFM.DateComplete IS NULL
+
+            GROUP BY
+                [DocNo],
+                [Type],
+                [PartNo],
+                [Who],
+                [DateCreated],
+                PV760_DFM.PartNo,
+                PV760_DFM.Customer,
+                PV760_DFM.DateComplete)
+
+        SELECT
+            Qry_Exp_P11_DFM.y,
+            Qry_Exp_P11_DFM.x
+
+        FROM Qry_Exp_P11_DFM
+
+        WHERE
+            Qry_Exp_P11_DFM.x > 30
+
+        ORDER BY
+            Qry_Exp_P11_DFM.x DESC;
+        """,
+        title=
+            "Open DFM (> 30 Days)",
+
+        x_label=
+            "Days Open",
+
+        formatter=
+            "integer",
+    ),
+    "P9": ChartDefinition(
+        sql="""
+        WITH Qry_Exp_P9_OpenObLog AS (
+        SELECT
+            PV718_ObLog.[Log],
+            PV718_ObLog.[Date_Added],
+            PV718_ObLog.Buyer,
+            PV718_ObLog.[Progress_Part],
+            PV718_ObLog.[Description_from_Progress],
+            PV718_ObLog.[Link_To_Supplier_Email_hyperlink_on_column_A],
+            PV718_ObLog.[Email_added_to_progress_AND_CHANGE_STATUS_TO_READ_MEMO],
+            PV718_ObLog.[Note_Added_to_Progress],
+            PV718_ObLog.[Email_to_Eng_And_Sales],
+            PV718_ObLog.[Other_Action_Taken],
+            PV718_ObLog.[PCN_or_EOL],
+            PV718_ObLog.[LTB_DATE],
+            PV718_ObLog.[Customer_s_Affected],
+            PV718_ObLog.[Acc_Mgr_Date_sent_to_customer],
+            PV718_ObLog.[Acc_Mgr_Action_requested_by_customer],
+            PV718_ObLog.[Complete]
+        FROM
+            PV718_ObLog
+        GROUP BY
+            PV718_ObLog.[Log],
+            PV718_ObLog.[Date_Added],
+            PV718_ObLog.Buyer,
+            PV718_ObLog.[Progress_Part],
+            PV718_ObLog.[Description_from_Progress],
+            PV718_ObLog.[Link_To_Supplier_Email_hyperlink_on_column_A],
+            PV718_ObLog.[Email_added_to_progress_AND_CHANGE_STATUS_TO_READ_MEMO],
+            PV718_ObLog.[Note_Added_to_Progress],
+            PV718_ObLog.[Email_to_Eng_And_Sales],
+            PV718_ObLog.[Other_Action_Taken],
+            PV718_ObLog.[PCN_or_EOL],
+            PV718_ObLog.[LTB_DATE],
+            PV718_ObLog.[Customer_s_Affected],
+            PV718_ObLog.[Acc_Mgr_Date_sent_to_customer],
+            PV718_ObLog.[Acc_Mgr_Action_requested_by_customer],
+            PV718_ObLog.[Complete]
+        HAVING
+            (((PV718_ObLog.[Complete]) IS NULL)))
+
+        SELECT
+            TOP 25 
+            CONCAT([Log] , ' / ' , [Buyer] , ' / ' , Left([Progress_Part], 15)) AS y,
+            DATEDIFF(DAY,[Date_Added],GETDATE()) AS x,
+            0 as targetStart,
+            DATEDIFF(DAY,GETDATE(),[LTB_DATE]) AS target
+        FROM
+            Qry_Exp_P9_OpenObLog
+        GROUP BY
+            [Log], 
+            [Buyer],
+            [Progress_Part],
+            [Date_Added],
+            [LTB_DATE]
+        ORDER BY x DESC;
+        """,
+        title=
+            "Obsolescence Log Open Items (PV718) Top 25 by Days Open",
+
+        x_label=
+            "Days Open",
+
+        formatter=
+            "integer",
+
+        meta={
+            "subtitle":
+                "Red target = days until LTB date"
+        },
+    ),
+    "P4": ChartDefinition(
+        sql="""
+        SELECT
+            TOP 20 
+            CONCAT([RFC] , ' (' , [Actionee] , ') - ' , [Document]) AS y,
+            DATEDIFF(DAY,[DateRaised],GETDATE()) AS x,
+            0 AS targetStart,
+            90 AS target
+        FROM
+            [PV547-RFC]
+        GROUP BY
+            [RFC],
+            [Actionee],
+            [Document],
+            [DateRaised],
+            [PV547-RFC].Status,
+            [PV547-RFC].Customer
+        HAVING
+            (
+                ((DATEDIFF(DAY,[DateRaised],GETDATE())) >= 45)
+                AND (
+                    ([PV547-RFC].Status) = 'open'
+                    OR ([PV547-RFC].Status) IS NULL
+                )
+                AND (([PV547-RFC].Customer) IS NOT NULL)
+            )
+        ORDER BY x DESC;
+        """,
+        title=
+            "RFC's Open > 45 Days",
+
+        x_label=
+            "Days Open",
+
+        formatter=
+            "integer",
+    ),
 }
 
 

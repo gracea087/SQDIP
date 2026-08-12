@@ -583,3 +583,9 @@
 .sqdip-chart__bar.sqdip-chart__bar--positive.lost-stock-red {
     fill: var(--graph-red);
 }
+
+.sqdip-chart__row-separator {
+    stroke: #c8c8c8;
+    stroke-width: 1px;
+    opacity: 1;
+}

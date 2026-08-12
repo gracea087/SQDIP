@@ -71,7 +71,7 @@
         rightValueFormatter: "number",
         rightValueWidth: null,
         rightValueLabel: "",
-        showRowSeparators: false,
+        showRowSeparators: true,
         orientation: "horizontal",
         yLabel: "",
         secondaryValueKey:
@@ -1626,13 +1626,19 @@
            svg.append(
                 gridGroup,
 
-                // Blue SO Open bars
+                /*
+                * Grey horizontal lines
+                * between every graph row.
+                */
+                rowSeparatorsGroup,
+
+                // Main bars
                 barsGroup,
 
-                // Cream SO Due bars on top
+                // Secondary bars
                 secondaryBarsGroup,
 
-                // Red 0-30 target box
+                // Target band
                 targetBandGroup,
 
                 targetsGroup,
@@ -1640,7 +1646,6 @@
                 labelsGroup,
                 valuesGroup,
 
-                // Numbers displayed inside cream bars
                 secondaryValuesGroup,
 
                 rightValuesGroup
@@ -2191,13 +2196,19 @@
             svg.append(
                 gridGroup,
 
-                // Blue SO Open bars
+                /*
+                * Grey horizontal lines
+                * between every graph row.
+                */
+                rowSeparatorsGroup,
+
+                // Main bars
                 barsGroup,
 
-                // Cream SO Due bars on top
+                // Secondary bars
                 secondaryBarsGroup,
 
-                // Red 0-30 target box
+                // Target band
                 targetBandGroup,
 
                 targetsGroup,
@@ -2205,11 +2216,10 @@
                 labelsGroup,
                 valuesGroup,
 
-                // Numbers displayed inside cream bars
                 secondaryValuesGroup,
 
                 rightValuesGroup
-);
+            );
 
             this.target.appendChild(
                 svg
