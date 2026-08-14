@@ -592,8 +592,6 @@
 
 /* =========================================================
    P10
-   Colours are determined by SQL fields/status,
-   NOT by positive/negative values.
    ========================================================= */
 
 
@@ -616,3 +614,18 @@
 .sqdip-chart__bar.p10-pending {
     fill: #f00000;
 }
+
+/* =========================================================
+   D3b
+   ========================================================= */
+
+
+/* Days Till Required = GREEN */
+#deliverablesGraph[data-chart-id="D3b"]
+.sqdip-chart__secondary-bar {
+    fill: #c96083;
+}
+
+
+
+

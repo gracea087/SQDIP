@@ -2283,6 +2283,140 @@ CHARTS: dict[str, ChartDefinition] = {
         formatter=
             "integer",
     ),
+    "D3b": ChartDefinition(
+        sql="""
+            SELECT
+                CONCAT(
+                    po.PONum,
+                    '/',
+                    po.PODetItemNum,
+                    ' # ',
+                    items.PartNo,
+                    ' # £',
+                    po.PODetUnitPrice * po.PODetQtyReq,
+                    ' (',
+                    emp.[Name],
+                    ')'
+                ) AS y,
+
+                DATEDIFF(
+                    DAY,
+                    CAST(GETDATE() AS date),
+                    required.RequiredDate
+                ) AS x,
+
+                DATEDIFF(
+                    DAY,
+                    CAST(GETDATE() AS date),
+                    po.PODetDatePromised
+                ) AS secondaryValue
+
+            FROM [Pcubed].[dbo].[AllLivePO] AS po
+
+            LEFT JOIN [Pcubed].[dbo].[AllItems] AS items
+                ON po.PODetPart = items.PartNo
+
+            LEFT JOIN [Pcubed].[dbo].[employees] AS emp
+                ON po.POBuyer = emp.BadgeNo
+
+            LEFT JOIN [Pcubed].[dbo].[SQDIP_PONoDemandOK] AS demandOK
+                ON po.PODetItemNum = demandOK.Line
+                AND po.PONum = demandOK.PO
+
+            CROSS APPLY
+            (
+                SELECT
+                    CASE
+                        WHEN items.MinOfWOSchedStartDate IS NULL
+                            THEN items.MinOfSOLinePromisedDate
+
+                        WHEN items.MinOfSOLinePromisedDate
+                            < items.MinOfWOSchedStartDate
+                            THEN items.MinOfSOLinePromisedDate
+
+                        ELSE items.MinOfWOSchedStartDate
+                    END AS RequiredDate
+            ) AS required
+
+            WHERE
+                DATEDIFF(
+                    DAY,
+                    CAST(GETDATE() AS date),
+                    required.RequiredDate
+                ) >= 28
+
+                AND (
+                    po.PODetUnitPrice
+                    * po.PODetQtyReq
+                ) > 100
+
+                AND CAST(
+                    po.PODetDatePromised AS date
+                ) NOT IN
+                (
+                    '2008-08-08',
+                    '2018-12-25',
+                    '2018-12-31',
+                    '2018-04-01',
+                    '2001-01-01'
+                )
+
+                AND required.RequiredDate
+                    > po.PODetDatePromised
+
+                AND
+                (
+                    YEAR(required.RequiredDate)
+                        <> YEAR(po.PODetDatePromised)
+
+                    OR
+
+                    MONTH(required.RequiredDate)
+                        <> MONTH(po.PODetDatePromised)
+                )
+
+                AND
+                (
+                    COALESCE(
+                        items.DemandSO,
+                        0
+                    )
+                    +
+                    COALESCE(
+                        items.DemandWO,
+                        0
+                    )
+                ) > 0
+
+                AND demandOK.PO IS NULL
+
+            ORDER BY
+                x DESC;
+        """,
+
+        title=
+            "PO Demand Date Review",
+
+        x_label=
+            "Days",
+
+        axis=
+            "left",
+
+        formatter=
+            "integer",
+
+        meta={
+            "secondaryValueFormatter":
+                "integer",
+
+            "secondaryValueLabel":
+                "Days Till Due",
+
+            "subtitle":
+                "🟦 Days Till Required | 🟫 Days Till Due"
+        },
+    ),
 }
 
 
