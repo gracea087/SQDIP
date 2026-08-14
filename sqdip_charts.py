@@ -2490,6 +2490,24 @@ CHARTS: dict[str, ChartDefinition] = {
         formatter=
             "integer",
     ),
+    "S1_days_since_accident": ChartDefinition(
+        sql="""
+            SELECT
+                'Days Since Last Accident' AS y,
+
+                DATEDIFF(
+                    DAY,
+                    MAX([Date]),
+                    GETDATE()
+                ) AS x
+
+            FROM [Pcubed].[dbo].[Accident];
+        """,
+
+        title="Days Since Last Accident",
+        x_label="Days",
+        formatter="integer"
+    ),
 }
 
 

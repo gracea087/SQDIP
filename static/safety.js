@@ -62,3 +62,52 @@ document.addEventListener(
         });
     }
 );
+
+async function loadDaysSinceLastAccident() {
+    const display =
+        document.getElementById(
+            "daysSinceLastAccident"
+        );
+
+    if (!display) {
+        return;
+    }
+
+    try {
+        const response =
+            await fetch(
+                "/api/sqdip/chart/S1_days_since_accident"
+            );
+
+        if (!response.ok) {
+            throw new Error(
+                `HTTP ${response.status}`
+            );
+        }
+
+        const payload =
+            await response.json();
+
+        const value =
+            payload.data?.[0]?.x;
+
+        if (
+            value === null
+            || value === undefined
+        ) {
+            display.textContent = "--";
+            return;
+        }
+
+        display.textContent =
+            value;
+    }
+    catch (error) {
+        console.error(
+            "Could not load days since last accident:",
+            error
+        );
+
+        display.textContent = "--";
+    }
+}
