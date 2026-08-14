@@ -2195,46 +2195,26 @@
 
             svg.append(
                 gridGroup,
-
-                /*
-                * Grey horizontal lines
-                * between every graph row.
-                */
-                rowSeparatorsGroup,
-
-                // Main bars
                 barsGroup,
-
-                // Secondary bars
-                secondaryBarsGroup,
-
-                // Target band
-                targetBandGroup,
-
-                targetsGroup,
                 axisGroup,
                 labelsGroup,
-                valuesGroup,
-
-                secondaryValuesGroup,
-
-                rightValuesGroup
+                valuesGroup
             );
 
-            this.target.appendChild(
-                svg
-            );
-        }
-        calculateLayout({
-            width,
-            height,
-            rowHeight,
-            topPadding,
-            bottomPadding,
-            outerPadding,
-            minimumPlotWidth,
-            hasRightValues
-        }) {
+                        this.target.appendChild(
+                            svg
+                        );
+                    }
+                    calculateLayout({
+                        width,
+                        height,
+                        rowHeight,
+                        topPadding,
+                        bottomPadding,
+                        outerPadding,
+                        minimumPlotWidth,
+                        hasRightValues
+                    }) {
 
             const configuredRightValueWidth =
                 this.options.rightValueWidth
