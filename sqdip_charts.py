@@ -2414,8 +2414,81 @@ CHARTS: dict[str, ChartDefinition] = {
                 "Days Till Due",
 
             "subtitle":
-                "🟦 Days Till Required | 🟫 Days Till Due"
+                "🟦 Days Till Required | 🟪 Days Till Due"
         },
+    ),
+    "D2": ChartDefinition(
+        sql="""
+        ;WITH [PV658-ReFormat] AS (SELECT
+            PV658.PO,
+            pv658.PO_Line,
+            PV658.DateRaised,
+            PV658.DateReleased
+        FROM
+            PV658
+        WHERE
+            (PV658.PO) IS NOT NULL
+            AND (PV658.PO_line) IS NOT NULL),
+
+        Qry_Exp_D2_QueryPO AS (SELECT
+            [PV658-ReFormat].PO AS PO,
+            [PV658-ReFormat].PO_line,
+            [PV658-BuyerEngineer].FirstOfBuyer AS Buyer,
+            AllLivePO.POSuppAddressName,
+            [PV658-ReFormat].DateRaised,
+            DATEDIFF(DAY, Max([DateRaised]), GETDATE()) AS DaysInQuery,
+            [PV658-ReFormat].DateReleased,
+            AllLivePO.PODetDatePromised
+        FROM
+            (
+                AllLivePO
+                RIGHT JOIN [PV658-ReFormat] ON (AllLivePO.PODetItemNum = [PV658-ReFormat].PO_line)
+                AND (AllLivePO.PONum = [PV658-ReFormat].PO)
+            )
+            LEFT JOIN [PV658-BuyerEngineer] ON AllLivePO.PONum = [PV658-BuyerEngineer].PO
+        GROUP BY
+            [PV658-ReFormat].PO,
+            [PV658-ReFormat].PO_line,
+            [PV658-BuyerEngineer].FirstOfBuyer,
+            AllLivePO.POSuppAddressName,
+            [PV658-ReFormat].DateRaised,
+            [PV658-ReFormat].DateReleased,
+            AllLivePO.PODetDatePromised
+        HAVING
+            (
+                (([PV658-ReFormat].DateRaised) > '7 / 31 / 2023')
+                AND (([PV658-ReFormat].DateReleased) IS NULL)
+            ))
+            
+        SELECT
+            CONCAT([PO] , '/' , [PO_line] , ' # ' , [Buyer] , ' # ' , [POSuppAddressName]) AS y,
+            Qry_Exp_D2_QueryPO.DaysInQuery AS x,
+            0 AS targetStart,
+            5 AS target
+
+        FROM
+            Qry_Exp_D2_QueryPO
+
+        GROUP BY
+                [PO],
+                [PO_line],
+                [Buyer],
+                [POSuppAddressName],
+                Qry_Exp_D2_QueryPO.DaysInQuery
+
+        ORDER BY x DESC;
+        """,
+        title=
+            "Purchase Orders In Query",
+
+        x_label=
+            "Days in Query",
+
+        axis=
+            "left",
+
+        formatter=
+            "integer",
     ),
 }
 
