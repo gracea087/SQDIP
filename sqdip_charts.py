@@ -796,7 +796,7 @@ CHARTS: dict[str, ChartDefinition] = {
         "S1": ChartDefinition(
         sql="""
             SELECT CONCAT(' ',FORMAT([Date], 'yy/MM'),' ') AS x,
-                COUNT([Accident Description]) AS y
+                COUNT([Accident_Description]) AS y
             FROM [Pcubed].[dbo].[Accident]
             WHERE [Date] > DATEADD(DAY,-365,GETDATE())
             GROUP BY FORMAT([Date], 'yy/MM')
