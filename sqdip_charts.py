@@ -2156,77 +2156,132 @@ CHARTS: dict[str, ChartDefinition] = {
             "integer",
     ), 
     "P10": ChartDefinition(
-        sql=""" 
-        SELECT
-            CONCAT(
-                cpp.[CPP],
-                ' ',
-                cpp.[Customer],
-                ' (',
-                COALESCE(cpp.[Status], ''),
-                ')'
-            ) AS y,
-
-            DATEDIFF(
-                DAY,
-                cpp.DateRaised,
-                GETDATE()
-            ) AS x,
-
-            DATEDIFF(
-                DAY,
-                GETDATE(),
-                cpp.RequiredDate
-            ) AS secondaryValue,
-
-            CASE
-                WHEN UPPER(
-                    COALESCE(
-                        cpp.Status,
-                        ''
-                    )
-                ) LIKE '%PENDING%'
-                    THEN 'p10-pending'
-
-                ELSE 'p10-open'
-            END AS className
-
-        FROM [Pcubed].[dbo].[CPP_Log] AS cpp
-
-        WHERE
-            cpp.DateRaised IS NOT NULL
-
-            AND
+        sql="""
+            WITH Qry_Exp_P10_CPP AS
             (
-                cpp.Status IS NULL
+                SELECT
+                    CONCAT(
+                        cpp.[CPP],
+                        ' ',
+                        cpp.[Customer],
+                        ' (',
+                        COALESCE(
+                            cpp.[Status],
+                            ''
+                        ),
+                        ')'
+                    ) AS Info,
 
-                OR
-                (
-                    cpp.Status NOT LIKE '%APPROVED%'
-                    AND cpp.Status NOT LIKE '%REJECTED%'
-                    AND cpp.Status NOT LIKE '%CANCELLED%'
-                    AND cpp.Status NOT LIKE '%NOT REQ%'
-                    AND cpp.Status NOT LIKE '%EXPIRED%'
-                )
+                    DATEDIFF(
+                        DAY,
+                        cpp.DateRaised,
+                        GETDATE()
+                    ) AS DaysOpen,
+
+                    DATEDIFF(
+                        DAY,
+                        GETDATE(),
+                        cpp.RequiredDate
+                    ) AS DaysTillReq,
+
+                    CASE
+                        WHEN UPPER(
+                            COALESCE(
+                                cpp.[Status],
+                                ''
+                            )
+                        ) LIKE '%PENDING%'
+                            THEN 'p10-pending'
+
+                        ELSE 'p10-days-open'
+                    END AS className
+
+                FROM [Pcubed].[dbo].[CPP_Log] AS cpp
+
+                WHERE
+                    cpp.DateRaised IS NOT NULL
+
+                    AND
+                    (
+                        cpp.Status IS NULL
+
+                        OR
+                        (
+                            cpp.Status NOT LIKE '%APPROVED%'
+                            AND cpp.Status NOT LIKE '%REJECTED%'
+                            AND cpp.Status NOT LIKE '%CANCELLED%'
+                            AND cpp.Status NOT LIKE '%NOT REQ%'
+                            AND cpp.Status NOT LIKE '%EXPIRED%'
+                        )
+                    )
             )
 
-        ORDER BY
-            x DESC;
-    """,
+            SELECT
+                Info AS y,
 
-    title="CPP Open Items",
+                DaysOpen AS x,
 
-    x_label="Days Open",
+                DaysTillReq AS secondaryValue,
 
-    axis="centre",
+                className
 
-    formatter="integer",
+            FROM Qry_Exp_P10_CPP
 
-    meta={
-        "symmetric": False,
-        "secondaryValueFormatter": "integer",
-        "secondaryValueLabel": "Days Till Required"
-    }
+            ORDER BY
+                DaysOpen DESC;
+        """,
+
+        title=
+            "CPP Open Items",
+
+        x_label=
+            "Days",
+
+        axis=
+            "left",
+
+        formatter=
+            "integer",
+
+        meta={
+            "secondaryValueFormatter":
+                "integer",
+
+            "secondaryValueLabel":
+                "Days Till Required",
+            
+            "subtitle":
+             "🟩 DaysTillReq | 🟦 DaysOpen | 🟥 Pending"
+        },
+    ),
+    "D5": ChartDefinition(
+        sql="""
+        SELECT
+            CONCAT([EnquiryNo] , ' ' , [EnqCustID] , ' # ' , [EnqDepartment]) AS y,
+            DATEDIFF(DAY,GETDATE(), [EnqRequiredDate]) AS x
+        FROM
+            AllEnq
+        GROUP BY
+            [EnquiryNo],
+            [EnqCustID],
+            [EnqDepartment],
+            [EnqRequiredDate],
+            AllEnq.EnqStatus
+        HAVING
+            (((AllEnq.EnqStatus) = '#Received'))
+        ORDER BY x asc;
+        """,
+        title=
+            "Enquiry Status -Recieved",
+
+        x_label=
+            "Days Untill Enq Response Required",
+
+        axis=
+            "left",
+
+        formatter=
+            "integer",
     ),
 }
 
