@@ -2155,6 +2155,79 @@ CHARTS: dict[str, ChartDefinition] = {
         formatter=
             "integer",
     ), 
+    "P10": ChartDefinition(
+        sql=""" 
+        SELECT
+            CONCAT(
+                cpp.[CPP],
+                ' ',
+                cpp.[Customer],
+                ' (',
+                COALESCE(cpp.[Status], ''),
+                ')'
+            ) AS y,
+
+            DATEDIFF(
+                DAY,
+                cpp.DateRaised,
+                GETDATE()
+            ) AS x,
+
+            DATEDIFF(
+                DAY,
+                GETDATE(),
+                cpp.RequiredDate
+            ) AS secondaryValue,
+
+            CASE
+                WHEN UPPER(
+                    COALESCE(
+                        cpp.Status,
+                        ''
+                    )
+                ) LIKE '%PENDING%'
+                    THEN 'p10-pending'
+
+                ELSE 'p10-open'
+            END AS className
+
+        FROM [Pcubed].[dbo].[CPP_Log] AS cpp
+
+        WHERE
+            cpp.DateRaised IS NOT NULL
+
+            AND
+            (
+                cpp.Status IS NULL
+
+                OR
+                (
+                    cpp.Status NOT LIKE '%APPROVED%'
+                    AND cpp.Status NOT LIKE '%REJECTED%'
+                    AND cpp.Status NOT LIKE '%CANCELLED%'
+                    AND cpp.Status NOT LIKE '%NOT REQ%'
+                    AND cpp.Status NOT LIKE '%EXPIRED%'
+                )
+            )
+
+        ORDER BY
+            x DESC;
+    """,
+
+    title="CPP Open Items",
+
+    x_label="Days Open",
+
+    axis="centre",
+
+    formatter="integer",
+
+    meta={
+        "symmetric": False,
+        "secondaryValueFormatter": "integer",
+        "secondaryValueLabel": "Days Till Required"
+    }
+    ),
 }
 
 
