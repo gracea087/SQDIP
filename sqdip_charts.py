@@ -2659,6 +2659,36 @@ TABLES = {
                 "Final Balance",
         }
     ),
+    "I15": TableDefinition(
+        sql="""
+        SELECT
+            Left([TransTime], 10) AS [When],
+            TransAltEdit.TransObjectType,
+            TransAltEdit.TransObjectID,
+            TransAltEdit.TransUser,
+            TransAltEdit.TransMemo
+        FROM
+            TransAltEdit
+        ORDER BY
+            Left([TransTime], 10) DESC;
+        """,
+        title=
+            "Part Detail Changes not checked",
+
+        headers={
+            "When":
+                "When",
+
+            "TransObjectID":
+                "PartNumber",
+
+            "TransUser":
+                "Who",
+
+            "TransMemo":
+                "What",
+        }
+    ),
 }
 
 
