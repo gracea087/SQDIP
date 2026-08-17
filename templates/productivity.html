@@ -26,7 +26,7 @@
     <button id="P6" type="button" data-sqdip-chart="P6">P6</button>
     <br>
 
-    <button id="P8" type="button">P8</button>
+    <button id="P8" type="button" data-sqdip-table="P8">P8</button>
     <br>
 
     <button id="P9" type="button" data-sqdip-chart="P9">P9</button>
@@ -61,6 +61,16 @@
     ></div>
 </section>
 
+<section
+    id="productivityTablePanel"
+    class="productivity-table-panel"
+    hidden
+>
+    <div
+        id="productivityTable"
+    ></div>
+</section>
+
 <script>
 document.addEventListener(
     "DOMContentLoaded",
@@ -77,6 +87,10 @@ document.addEventListener(
                 if (
                     !button.hasAttribute(
                         "data-sqdip-chart"
+                    )
+                    &&
+                    !button.hasAttribute(
+                        "data-sqdip-table"
                     )
                 ) {
                     button.style.display =

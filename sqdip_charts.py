@@ -2689,6 +2689,36 @@ TABLES = {
                 "What",
         }
     ),
+    "P8": TableDefinition(
+        sql="""
+        SELECT
+            CONCAT([DocNumber] , ' - ' , [DocName]) AS What,
+            AllProcedures.DocOwner AS Who,
+            AllProcedures.DocNextReview AS [When]
+        FROM
+            AllProcedures
+        WHERE
+            (
+                ((AllProcedures.DocNextReview) < GETDATE() + 30)
+                AND ((AllProcedures.Status) = 'Published')
+            )
+        ORDER BY
+            AllProcedures.DocNextReview;
+        """,
+        title=
+            "Procedures to be reviewed",
+
+        headers={
+            "What":
+                "What",
+
+            "When":
+                "When",
+
+            "Who":
+                "Who",
+        }
+    ),
 }
 
 
