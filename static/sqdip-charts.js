@@ -3085,16 +3085,717 @@
     };
 }
 
-    function registerFormatter(name, formatter) {
+        /*
+     * =====================================================
+     * TABLE SUPPORT
+     * =====================================================
+     */
+
+    function renderTable(
+        target,
+        payload = {}
+    ) {
+        const targetElement =
+            resolveElement(
+                target
+            );
+
+
+        const meta =
+            payload.meta
+            && typeof payload.meta === "object"
+                ? payload.meta
+                : {};
+
+
+        const rows =
+            Array.isArray(
+                payload.data
+            )
+                ? payload.data
+                : [];
+
+
+        let columns =
+            Array.isArray(
+                meta.columns
+            )
+                ? meta.columns
+                : [];
+
+
+        /*
+         * If the API did not provide
+         * explicit column definitions,
+         * display every returned field.
+         */
         if (
-            !name
-            || typeof formatter !== "function"
+            columns.length === 0
+            && rows.length > 0
         ) {
-            throw new TypeError(
-                "SQDIPCharts.registerFormatter "
-                + "requires a name and function."
+            columns =
+                Object.keys(
+                    rows[0]
+                ).map(
+                    key => ({
+                        key,
+                        label: key
+                    })
+                );
+        }
+
+
+        targetElement.replaceChildren();
+
+        targetElement.classList.add(
+            "sqdip-table"
+        );
+
+        targetElement.dataset.state =
+            "ready";
+
+
+        /*
+         * Table title.
+         */
+        if (meta.title) {
+
+            const title =
+                document.createElement(
+                    "h2"
+                );
+
+            title.className =
+                "sqdip-table__title";
+
+            title.textContent =
+                meta.title;
+
+            targetElement.appendChild(
+                title
             );
         }
+
+
+        /*
+         * No records returned.
+         */
+        if (rows.length === 0) {
+
+            const empty =
+                document.createElement(
+                    "div"
+                );
+
+            empty.className =
+                "sqdip-table__empty";
+
+            empty.textContent =
+                "No data is available.";
+
+            targetElement.appendChild(
+                empty
+            );
+
+            return;
+        }
+
+
+        const wrapper =
+            document.createElement(
+                "div"
+            );
+
+        wrapper.className =
+            "sqdip-table__wrapper";
+
+
+        const table =
+            document.createElement(
+                "table"
+            );
+
+        table.className =
+            "sqdip-table__table";
+
+
+        /*
+         * =================================================
+         * TABLE HEADER
+         * =================================================
+         */
+
+        const thead =
+            document.createElement(
+                "thead"
+            );
+
+        const headerRow =
+            document.createElement(
+                "tr"
+            );
+
+
+        columns.forEach(
+            column => {
+
+                const th =
+                    document.createElement(
+                        "th"
+                    );
+
+                th.textContent =
+                    column.label
+                    ?? column.key;
+
+                headerRow.appendChild(
+                    th
+                );
+            }
+        );
+
+
+        thead.appendChild(
+            headerRow
+        );
+
+        table.appendChild(
+            thead
+        );
+
+
+        /*
+         * =================================================
+         * TABLE DATA
+         * =================================================
+         */
+
+        const tbody =
+            document.createElement(
+                "tbody"
+            );
+
+
+        rows.forEach(
+            row => {
+
+                const tr =
+                    document.createElement(
+                        "tr"
+                    );
+
+
+                columns.forEach(
+                    column => {
+
+                        const td =
+                            document.createElement(
+                                "td"
+                            );
+
+
+                        const value =
+                            row[
+                                column.key
+                            ];
+
+
+                        td.textContent =
+                            value === null
+                            || value === undefined
+                                ? ""
+                                : String(
+                                    value
+                                );
+
+
+                        tr.appendChild(
+                            td
+                        );
+                    }
+                );
+
+
+                tbody.appendChild(
+                    tr
+                );
+            }
+        );
+
+
+        table.appendChild(
+            tbody
+        );
+
+        wrapper.appendChild(
+            table
+        );
+
+        targetElement.appendChild(
+            wrapper
+        );
+    }
+
+
+    /*
+     * Load a table from the generic
+     * SQDIP table API.
+     */
+    async function loadTable(
+        target,
+        url,
+        fetchOptions = {}
+    ) {
+        const targetElement =
+            resolveElement(
+                target
+            );
+
+
+        targetElement.replaceChildren();
+
+        targetElement.dataset.state =
+            "loading";
+
+
+        const loading =
+            document.createElement(
+                "div"
+            );
+
+        loading.className =
+            "sqdip-table__loading";
+
+        loading.textContent =
+            "Loading table…";
+
+        targetElement.appendChild(
+            loading
+        );
+
+
+        try {
+
+            const {
+                headers = {},
+                ...requestOptions
+            } = fetchOptions;
+
+
+            const response =
+                await fetch(
+                    url,
+                    {
+                        credentials:
+                            "same-origin",
+
+                        ...requestOptions,
+
+                        headers: {
+                            Accept:
+                                "application/json",
+
+                            ...headers
+                        }
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                const text =
+                    await response.text();
+
+                throw new Error(
+                    `HTTP ${
+                        response.status
+                    }: ${text}`
+                );
+            }
+
+
+            const payload =
+                await response.json();
+
+
+            renderTable(
+                targetElement,
+                payload
+            );
+
+
+            return payload;
+        }
+        catch (error) {
+
+            console.error(
+                "SQDIP table load error:",
+                error
+            );
+
+
+            targetElement.replaceChildren();
+
+            targetElement.dataset.state =
+                "error";
+
+
+            const message =
+                document.createElement(
+                    "div"
+                );
+
+            message.className =
+                "sqdip-table__error";
+
+            message.textContent =
+                "The table could not be loaded.";
+
+
+            targetElement.appendChild(
+                message
+            );
+
+
+            throw error;
+        }
+    }
+
+
+    /*
+     * Bind buttons containing:
+     *
+     * data-sqdip-table="I3"
+     *
+     * to:
+     *
+     * /api/sqdip/table/I3
+     */
+    function mountTableButtons({
+        target,
+
+        buttons =
+            "[data-sqdip-table]",
+
+        endpointBase =
+            "/api/sqdip/table/",
+
+        fetchOptions = {},
+
+        autoLoad =
+            false,
+
+        activeClass =
+            "is-active",
+
+        onBeforeLoad =
+            null,
+
+        onLoaded =
+            null,
+
+        onError =
+            null
+    } = {}) {
+
+        const targetElement =
+            resolveElement(
+                target
+            );
+
+
+        const buttonElements =
+            Array.from(
+                document.querySelectorAll(
+                    buttons
+                )
+            );
+
+
+        if (
+            buttonElements.length === 0
+        ) {
+            console.warn(
+                "SQDIPCharts: "
+                + "no table buttons were found."
+            );
+        }
+
+
+        async function loadFromButton(
+            button
+        ) {
+
+            const tableId =
+                button.dataset
+                    .sqdipTable;
+
+
+            const explicitUrl =
+                button.dataset
+                    .sqdipUrl;
+
+
+            if (!tableId) {
+                throw new Error(
+                    "SQDIPCharts: "
+                    + "table button has no "
+                    + "data-sqdip-table value."
+                );
+            }
+
+
+            const url =
+                explicitUrl
+                ||
+                (
+                    `${endpointBase}${
+                        encodeURIComponent(
+                            tableId
+                        )
+                    }`
+                );
+
+
+            /*
+             * Mark selected table button.
+             */
+            buttonElements.forEach(
+                item => {
+
+                    const active =
+                        item === button;
+
+
+                    item.classList.toggle(
+                        activeClass,
+                        active
+                    );
+
+
+                    item.setAttribute(
+                        "aria-pressed",
+                        active
+                            ? "true"
+                            : "false"
+                    );
+                }
+            );
+
+
+            targetElement.dataset.tableId =
+                tableId;
+
+
+            /*
+             * Page-specific action before
+             * the table starts loading.
+             *
+             * Used by inventory.js to:
+             * - hide graph
+             * - show table panel
+             */
+            if (
+                typeof onBeforeLoad
+                    === "function"
+            ) {
+                onBeforeLoad({
+                    tableId,
+                    url,
+                    button
+                });
+            }
+
+
+            try {
+
+                const payload =
+                    await loadTable(
+                        targetElement,
+                        url,
+                        fetchOptions
+                    );
+
+
+                if (
+                    typeof onLoaded
+                        === "function"
+                ) {
+                    onLoaded({
+                        tableId,
+                        url,
+                        button,
+                        payload
+                    });
+                }
+
+
+                return payload;
+            }
+            catch (error) {
+
+                if (
+                    typeof onError
+                        === "function"
+                ) {
+                    onError({
+                        tableId,
+                        url,
+                        button,
+                        error
+                    });
+                }
+
+
+                throw error;
+            }
+        }
+
+
+        /*
+         * Attach click handlers.
+         */
+        buttonElements.forEach(
+            button => {
+
+                if (
+                    !button.hasAttribute(
+                        "type"
+                    )
+                ) {
+                    button.type =
+                        "button";
+                }
+
+
+                button.setAttribute(
+                    "aria-controls",
+                    targetElement.id
+                    || "sqdip-table"
+                );
+
+
+                button.setAttribute(
+                    "aria-pressed",
+                    "false"
+                );
+
+
+                button.addEventListener(
+                    "click",
+                    () => {
+
+                        loadFromButton(
+                            button
+                        ).catch(
+                            error => {
+
+                                console.error(
+                                    "SQDIP table "
+                                    + "button error:",
+                                    error
+                                );
+                            }
+                        );
+                    }
+                );
+            }
+        );
+
+
+        /*
+         * Optional first-table
+         * automatic loading.
+         */
+        if (
+            autoLoad
+            && buttonElements.length > 0
+        ) {
+
+            const defaultButton =
+                buttonElements.find(
+                    button =>
+                        button.hasAttribute(
+                            "data-sqdip-default"
+                        )
+                )
+                || buttonElements[0];
+
+
+            loadFromButton(
+                defaultButton
+            ).catch(
+                error => {
+
+                    console.error(
+                        "SQDIP table "
+                        + "auto-load error:",
+                        error
+                    );
+                }
+            );
+        }
+
+
+        /*
+         * Public table controller.
+         */
+        return {
+
+            load:
+                tableId => {
+
+                    const matchingButton =
+                        buttonElements.find(
+                            button =>
+                                button.dataset
+                                    .sqdipTable
+                                === tableId
+                        );
+
+
+                    if (!matchingButton) {
+
+                        throw new Error(
+                            "SQDIPCharts: "
+                            + "no button is "
+                            + "configured for "
+                            + `table '${tableId}'.`
+                        );
+                    }
+
+
+                    return loadFromButton(
+                        matchingButton
+                    );
+                }
+        };
+    }
+
+
+    /*
+     * =====================================================
+     * FORMATTER REGISTRATION
+     * =====================================================
+     */
+
+    function registerFormatter(
+        name,
+        formatter
+    ) {
+        if (
+            !name
+            || typeof formatter !==
+                "function"
+        ) {
+            throw new TypeError(
+                "SQDIPCharts."
+                + "registerFormatter "
+                + "requires a name "
+                + "and function."
+            );
+        }
+
 
         formatters.set(
             String(name),
@@ -3102,17 +3803,44 @@
         );
     }
 
-    global.SQDIPCharts = Object.freeze({
-        version: "1.1.0",
 
-        create,
-        render,
-        load,
+    /*
+     * =====================================================
+     * PUBLIC SQDIP API
+     * =====================================================
+     *
+     * Everything that page JS files
+     * are allowed to call must be
+     * exported here.
+     */
 
-        mountButtons,
-        mountFilterButtons,
+    global.SQDIPCharts =
+        Object.freeze({
 
-        registerFormatter
-    });
+            version:
+                "1.2.0",
+
+            /*
+             * Graph API
+             */
+            create,
+            render,
+            load,
+
+            mountButtons,
+            mountFilterButtons,
+
+            /*
+             * Table API
+             */
+            renderTable,
+            loadTable,
+            mountTableButtons,
+
+            /*
+             * Formatter API
+             */
+            registerFormatter
+        });
 })
 (window);

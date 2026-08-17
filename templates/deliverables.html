@@ -30,9 +30,9 @@
 <br>
 <button id="D9" type="button" data-sqdip-chart="D9">D9</button>
 <br>
-<button id="D10" type="button">D10</button>
+<button id="D10" type="button" data-sqdip-table="D10">D10</button>
 <br>
-<button id="D11" type="button">D11</button>
+<button id="D11" type="button"  data-sqdip-table="D11">D11</button>
 <br>
 <button id="D12" type="button" data-sqdip-chart="D12">D12</button>
 </div>
@@ -45,6 +45,16 @@
     <div
         id="deliverablesGraph"
         class="deliverables-graph"
+    ></div>
+</section>
+
+<section
+    id="deliverablesTablePanel"
+    class="deliverables-table-panel"
+    hidden
+>
+    <div
+        id="deliverablesTable"
     ></div>
 </section>
 
@@ -64,6 +74,10 @@ document.addEventListener(
                 if (
                     !button.hasAttribute(
                         "data-sqdip-chart"
+                    )
+                    &&
+                    !button.hasAttribute(
+                        "data-sqdip-table"
                     )
                 ) {
                     button.style.display =

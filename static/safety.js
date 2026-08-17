@@ -52,7 +52,7 @@ document.addEventListener(
                 "/api/sqdip/chart/",
 
             autoLoad:
-                false,
+                true,
 
             onBeforeLoad:
                 function () {
@@ -60,6 +60,7 @@ document.addEventListener(
                         false;
                 }
         });
+        loadDaysSinceLastAccident();
     }
 );
 

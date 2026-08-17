@@ -3,6 +3,7 @@
 document.addEventListener(
     "DOMContentLoaded",
     function () {
+
         const graphPanel =
             document.getElementById(
                 "deliverablesGraphPanel"
@@ -13,14 +14,20 @@ document.addEventListener(
                 "deliverablesGraph"
             );
 
+        const tablePanel =
+            document.getElementById(
+                "deliverablesTablePanel"
+            );
+
 
         if (
             !graphPanel
             || !graphTarget
+            || !tablePanel
         ) {
             console.error(
-                "The Deliverables graph "
-                + "panel could not be found."
+                "The deliverables page "
+                + "elements could not be found."
             );
 
             return;
@@ -28,8 +35,8 @@ document.addEventListener(
 
 
         if (
-            typeof SQDIPCharts ===
-            "undefined"
+            typeof SQDIPCharts
+                === "undefined"
         ) {
             console.error(
                 "sqdip-charts.js "
@@ -40,7 +47,11 @@ document.addEventListener(
         }
 
 
+        /*
+         * GRAPH BUTTONS
+         */
         SQDIPCharts.mountButtons({
+
             target:
                 "#deliverablesGraph",
 
@@ -56,7 +67,49 @@ document.addEventListener(
 
             onBeforeLoad:
                 function () {
+
+                    /*
+                     * Show graph,
+                     * hide table.
+                     */
                     graphPanel.hidden =
+                        false;
+
+                    tablePanel.hidden =
+                        true;
+                }
+        });
+
+
+        /*
+         * TABLE BUTTONS
+         */
+        SQDIPCharts.mountTableButtons({
+
+            target:
+                "#deliverablesTable",
+
+            buttons:
+                ".button-container "
+                + "[data-sqdip-table]",
+
+            endpointBase:
+                "/api/sqdip/table/",
+
+            autoLoad:
+                false,
+
+            onBeforeLoad:
+                function () {
+
+                    /*
+                     * Hide graph,
+                     * show table.
+                     */
+                    graphPanel.hidden =
+                        true;
+
+                    tablePanel.hidden =
                         false;
                 }
         });

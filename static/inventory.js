@@ -14,6 +14,11 @@ document.addEventListener(
                 "inventoryGraph"
             );
 
+        const tablePanel =
+            document.getElementById(
+                "inventoryTablePanel"
+            );
+
         const graphColourIndicator =
             document.getElementById(
                 "graphColourIndicator"
@@ -23,10 +28,11 @@ document.addEventListener(
         if (
             !graphPanel
             || !graphTarget
+            || !tablePanel
             || !graphColourIndicator
         ) {
             console.error(
-                "The inventory graph "
+                "The inventory page "
                 + "elements could not be found."
             );
 
@@ -47,6 +53,9 @@ document.addEventListener(
         }
 
 
+        /*
+         * GRAPH BUTTONS
+         */
         SQDIPCharts.mountButtons({
 
             target:
@@ -62,26 +71,54 @@ document.addEventListener(
             autoLoad:
                 false,
 
-
             onBeforeLoad:
                 function ({
-                    chartId,
                     button
                 }) {
 
                     graphPanel.hidden =
                         false;
 
+                    tablePanel.hidden =
+                        true;
 
-                    /*
-                     * Show Lost Stock colour
-                     * legend only for charts
-                     * marked as lost-stock.
-                     */
                     graphColourIndicator.hidden =
                         button.dataset
                             .colourIndicator
                         !== "lost-stock";
+                }
+        });
+
+
+        /*
+         * TABLE BUTTONS
+         */
+        SQDIPCharts.mountTableButtons({
+
+            target:
+                "#inventoryTable",
+
+            buttons:
+                ".button-container "
+                + "[data-sqdip-table]",
+
+            endpointBase:
+                "/api/sqdip/table/",
+
+            autoLoad:
+                false,
+
+            onBeforeLoad:
+                function () {
+
+                    graphPanel.hidden =
+                        true;
+
+                    tablePanel.hidden =
+                        false;
+
+                    graphColourIndicator.hidden =
+                        true;
                 }
         });
     }

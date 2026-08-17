@@ -626,6 +626,71 @@
     fill: #7664b6;
 }
 
+/* =========================================================
+   SQDIP TABLES
+   ========================================================= */
+
+.sqdip-table {
+    width: 100%;
+}
 
 
+.sqdip-table__title {
+    margin: 8px 0 14px 0;
 
+    text-align: center;
+
+    font-size: 20px;
+}
+
+
+.sqdip-table__wrapper {
+    width: 100%;
+
+    overflow-x: auto;
+}
+
+
+.sqdip-table__table {
+    width: 100%;
+
+    border-collapse: collapse;
+
+    font-size: 14px;
+}
+
+
+.sqdip-table__table th {
+    padding: 9px 12px;
+
+    border: 1px solid #b5b5b5;
+
+    background: #4f8fc0;
+
+    text-align: left;
+
+    font-weight: 700;
+}
+
+
+.sqdip-table__table td {
+    padding: 8px 12px;
+
+    border: 1px solid #d0d0d0;
+
+    vertical-align: top;
+}
+
+
+.sqdip-table__table tbody tr:nth-child(even) {
+    background: #f5f5f5;
+}
+
+
+.sqdip-table__empty,
+.sqdip-table__loading,
+.sqdip-table__error {
+    padding: 20px;
+
+    text-align: center;
+}

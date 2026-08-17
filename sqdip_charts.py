@@ -45,6 +45,25 @@ class ChartDefinition:
         default_factory=dict
     )
 
+
+@dataclass(frozen=True)
+class TableDefinition:
+    sql: str
+
+    title: str
+
+    headers: Mapping[
+        str,
+        str
+    ] = field(
+        default_factory=dict
+    )
+
+    parameters: Callable[
+        [Mapping[str, str]],
+        Sequence[Any]
+    ] = lambda _args: ()
+
 @dataclass(frozen=True)
 class FilterDefinition:
     sql: str
@@ -2510,6 +2529,138 @@ CHARTS: dict[str, ChartDefinition] = {
     ),
 }
 
+TABLES = {
+    "I3": TableDefinition(
+        sql="""
+            SELECT
+                LEFT(
+                    CONCAT(
+                        CONVERT(
+                            varchar(10),
+                            si.IssueDate,
+                            103
+                        ),
+                        ' - ',
+                        si.IssueQty,
+                        ' x ',
+                        si.IssuePartNo,
+                        ' : ',
+                        items.PartDescription
+                    ),
+                    50
+                ) AS Details,
+
+                si.IssueNotes AS IssueNotes,
+
+                CONCAT(
+                    '£',
+                    ROUND(
+                        si.IssueUnitCost
+                        * si.IssueQty,
+                        2
+                    )
+                ) AS Value
+
+            FROM [Pcubed].[dbo].[StockIssue] AS si
+
+            LEFT JOIN [Pcubed].[dbo].[AllItems] AS items
+                ON si.IssuePartNo
+                = items.PartNo
+
+            WHERE
+                (
+                    si.IssueUnitCost
+                    * si.IssueQty
+                ) > 100
+
+                AND si.IssueDate >
+                    DATEADD(
+                        DAY,
+                        -4,
+                        GETDATE()
+                    )
+
+                AND si.IssueType =
+                    'WRITE_OFF'
+
+            ORDER BY
+                si.IssueDate DESC;
+        """,
+
+        title=
+            "Stock Write Offs",
+
+        headers={
+            "Details":
+                "Details (Last 4 Days, Value > £100)",
+
+            "IssueNotes":
+                "Notes",
+
+            "Value":
+                "Value"
+        }
+    ),
+    "D10": TableDefinition(
+        sql="""
+        SELECT
+            PV755.PartNo,
+            PV755.[Desc],
+            PV755.Cust,
+            PV755.UsedIn
+        FROM
+            [Pcubed].[dbo].[PV755];
+        """,
+        title=
+            "Critical Parts",
+
+        headers={
+            "PartNo":
+                "PartNo",
+
+            "Desc":
+                "Description",
+
+            "Cust":
+                "Customer",
+
+            "UsedIn":
+                "Used In",
+        }
+    ),
+    "D11": TableDefinition(
+        sql="""
+        SELECT
+            AllItems.PartNo,
+            AllItems.PartDescription,
+            AllItems.PartDefLocation,
+            [PartStockActive] - [DemandSO] - [DemandWO] + [PartStockOnOrderPO] + [PartStockOnOrderWO] AS FinalStockBalance
+        FROM
+            [Pcubed].[dbo].[AllItems]
+        WHERE
+            ((([PartStockActive] - [DemandSO] - [DemandWO] + [PartStockOnOrderPO] + [PartStockOnOrderWO]) < 0)
+                AND ((AllItems.PartMainlyPurchased) = 1)
+            );
+        """,
+        title=
+            "Parts to be purchased",
+
+        headers={
+            "PartNo":
+                "Part Number",
+
+            "PartDescription":
+                "Part Description",
+
+            "PartDefLocation":
+                "Stock Location",
+
+            "FinalStockBalance":
+                "Final Balance",
+        }
+    ),
+}
+
 
 def json_value(value: Any) -> Any:
     """Convert pyodbc and SQL Server values into JSON-safe values."""
@@ -2522,6 +2673,127 @@ def json_value(value: Any) -> Any:
 
     return value
 
+
+@sqdip_charts_bp.get(
+    "/api/sqdip/table/<string:table_id>"
+)
+def get_sqdip_table(table_id: str):
+
+    definition = TABLES.get(
+        table_id
+    )
+
+    if definition is None:
+        return jsonify({
+            "error":
+                "Unknown SQDIP table.",
+
+            "tableId":
+                table_id
+        }), 404
+
+
+    parameters = definition.parameters(
+        request.args
+    )
+
+    connection = None
+
+    try:
+        connection = get_db_connection()
+
+        cursor = connection.cursor()
+
+        cursor.execute(
+            definition.sql,
+            *parameters
+        )
+
+
+        if cursor.description is None:
+            raise RuntimeError(
+                f"Table '{table_id}' "
+                "returned no result set."
+            )
+
+
+        column_names = [
+            column[0]
+            for column
+            in cursor.description
+        ]
+
+
+        rows = []
+
+        for sql_row in cursor.fetchall():
+
+            row = {}
+
+            for column_name, value in zip(
+                column_names,
+                sql_row
+            ):
+                row[column_name] = json_value(
+                    value
+                )
+
+            rows.append(
+                row
+            )
+
+
+        columns = [
+            {
+                "key":
+                    column_name,
+
+                "label":
+                    definition.headers.get(
+                        column_name,
+                        column_name
+                    )
+            }
+
+            for column_name in column_names
+        ]
+
+
+        return jsonify({
+            "meta": {
+                "title":
+                    definition.title,
+
+                "columns":
+                    columns
+            },
+
+            "data":
+                rows
+        })
+
+
+    except Exception as error:
+
+        print(
+            f"SQDIP table failed: "
+            f"{table_id}: {error}",
+            flush=True
+        )
+
+        return jsonify({
+            "tableId":
+                table_id,
+
+            "error":
+                str(error)
+        }), 500
+
+
+    finally:
+
+        if connection is not None:
+            connection.close()
 
 @sqdip_charts_bp.get(
     "/api/sqdip/filter/<string:filter_id>"

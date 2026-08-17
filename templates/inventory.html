@@ -8,7 +8,7 @@
 <br>
 <button id="I2b" type="button" data-sqdip-chart="I2b_wip">I2b</button>
 <br>
-<button id="I3" type="button">I3</button>
+<button id="I3" type="button" data-sqdip-table="I3">I3</button>
 <br>
 <button id="I4" type="button" data-sqdip-chart="I4">I4</button>
 <br>
@@ -106,6 +106,16 @@
     ></div>
 </section>
 
+<section
+    id="inventoryTablePanel"
+    class="inventory-table-panel"
+    hidden
+>
+    <div
+        id="inventoryTable"
+    ></div>
+</section>
+
 <script>
 document.addEventListener(
     "DOMContentLoaded",
@@ -122,6 +132,10 @@ document.addEventListener(
                 if (
                     !button.hasAttribute(
                         "data-sqdip-chart"
+                    )
+                    &&
+                    !button.hasAttribute(
+                        "data-sqdip-table"
                     )
                 ) {
                     button.style.display =
