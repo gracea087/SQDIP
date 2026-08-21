@@ -12,7 +12,12 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Callable, Mapping, Sequence
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_file
+from io import BytesIO
+
+from openpyxl import Workbook
+from openpyxl.styles import Font
+from openpyxl.utils import get_column_letter
 
 # Replace this import with the connection helper already used by the SQDIP app.
 from database import get_db_connection
@@ -63,6 +68,20 @@ class TableDefinition:
         [Mapping[str, str]],
         Sequence[Any]
     ] = lambda _args: ()
+
+
+@dataclass(frozen=True)
+class ExportDefinition:
+    sql: str
+    title: str
+    filename: str
+
+    parameters: Callable[
+        [Mapping[str, str]],
+        Sequence[Any]
+    ] = lambda _args: ()
+
+    departments: tuple[str, ...] = ()
 
 @dataclass(frozen=True)
 class FilterDefinition:
@@ -2721,6 +2740,206 @@ TABLES = {
     ),
 }
 
+EXPORTS = {
+    "D1d": ExportDefinition(
+        sql="""
+        SELECT
+            AllLivePO.PONum,
+            AllLivePO.PODetItemNum,
+            AllLivePO.POSuppAddressName,
+            employees.Name,
+            datediff(day,[PODetDatePromised], GETDATE()) AS DaysLate
+        FROM
+            AllLivePO
+            INNER JOIN employees ON AllLivePO.POBuyer = employees.BadgeNo
+        WHERE
+            (
+                (datediff(day,[PODetDatePromised], GETDATE()) > 0)
+                AND ((AllLivePO.PODetDatePromised) > '1 / 1 / 2019 ')
+                AND (
+                    (AllLivePO.PODetDateLatest) LIKE '8 / 8 / 2008 '
+                    OR (AllLivePO.PODetDateLatest) LIKE '9 / 9 / 2009 '
+                    OR (AllLivePO.PODetDateLatest) LIKE '10 / 10 / 2010 '
+                )
+            )
+        ORDER BY
+            datediff(day,[PODetDatePromised], GETDATE()) DESC;
+        """,
+
+        title="Overdue Purchase Orders",
+
+        filename="Qry_Exp_D1d_OverduePO.xlsx",
+
+        departments=(
+            "pur",
+        )
+    ),
+}
+
+
+# IMPORTANT:
+# THIS @ MUST START AT COLUMN 1.
+@sqdip_charts_bp.get(
+    "/api/sqdip/export/<string:export_id>"
+)
+def export_sqdip_excel(export_id: str):
+
+    definition = EXPORTS.get(export_id)
+
+    if definition is None:
+        return jsonify({
+            "error":
+                f"No Excel export is defined "
+                f"for '{export_id}'.",
+            "exportId":
+                export_id
+        }), 404
+
+    parameters = definition.parameters(
+        request.args
+    )
+
+    connection = None
+    cursor = None
+
+    try:
+        print(
+            f"SQDIP export starting: {export_id}",
+            flush=True
+        )
+
+        connection = get_db_connection()
+        connection.timeout = 30
+
+        cursor = connection.cursor()
+
+        cursor.execute(
+            definition.sql,
+            *parameters
+        )
+
+        if cursor.description is None:
+            raise RuntimeError(
+                f"Export '{export_id}' "
+                "returned no SQL result set."
+            )
+
+        column_names = [
+            column[0]
+            for column in cursor.description
+        ]
+
+        sql_rows = cursor.fetchall()
+
+        workbook = Workbook()
+        worksheet = workbook.active
+
+        worksheet.title = definition.title[:31]
+
+        worksheet.append(column_names)
+
+        for cell in worksheet[1]:
+            cell.font = Font(
+                bold=True
+            )
+
+        for sql_row in sql_rows:
+            worksheet.append(
+                list(sql_row)
+            )
+
+        worksheet.freeze_panes = "A2"
+
+        worksheet.auto_filter.ref = (
+            worksheet.dimensions
+        )
+
+        for column_number, column_name in enumerate(
+            column_names,
+            start=1
+        ):
+            max_length = len(
+                str(column_name)
+            )
+
+            for row_number in range(
+                2,
+                worksheet.max_row + 1
+            ):
+                value = worksheet.cell(
+                    row=row_number,
+                    column=column_number
+                ).value
+
+                if value is not None:
+                    max_length = max(
+                        max_length,
+                        len(str(value))
+                    )
+
+            worksheet.column_dimensions[
+                get_column_letter(
+                    column_number
+                )
+            ].width = min(
+                max_length + 2,
+                60
+            )
+
+        output = BytesIO()
+
+        workbook.save(output)
+
+        output.seek(0)
+
+        print(
+            f"SQDIP export completed: "
+            f"{export_id} "
+            f"({len(sql_rows)} rows)",
+            flush=True
+        )
+
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=definition.filename,
+            mimetype=(
+                "application/"
+                "vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            )
+        )
+
+    except Exception as error:
+        print(
+            f"SQDIP export failed: "
+            f"{export_id}: {error}",
+            flush=True
+        )
+
+        return jsonify({
+            "error": str(error),
+            "exportId": export_id
+        }), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if connection is not None:
+            connection.close()
+
+
+def json_value(value: Any) -> Any:
+    """Convert pyodbc values into JSON-safe values."""
+
+    if isinstance(value, Decimal):
+        return float(value)
+
+    if isinstance(value, (date, datetime)):
+        return value.isoformat()
+
+    return value
 
 def json_value(value: Any) -> Any:
     """Convert pyodbc and SQL Server values into JSON-safe values."""
