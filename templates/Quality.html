@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% set page_title = "QUALITY" %}
+{% set page_title = "Quality" %}
 
 {% block content %}
 <div class="button-container">
@@ -12,7 +12,7 @@
 <br>
 <button id="Q6" type="button" data-sqdip-chart="Q6">Q6</button>
 <br>
-<button id="Q7" type="button" data-sqdip-chart="Q7">Q7</button>
+<button id="Q7" type="button" data-sqdip-chart="Q7" data-sqdip-export="true">Q7</button>
 <br>
 <button id="Q8" type="button" data-sqdip-chart="Q8">Q8</button>
 <br>
@@ -21,19 +21,29 @@
 <button id="Q9" type="button" data-sqdip-chart="Q9">Q9</button>
 </div>
 
+<button
+    type="button"
+    id="exportQualityButton"
+    class="Quality-button Quality-button-primary"
+    hidden
+    disabled
+>
+    Export to Excel
+</button>
+
 <section
-    id="qualityGraphPanel"
-    class="quality-graph-panel"
+    id="QualityGraphPanel"
+    class="Quality-graph-panel"
     hidden
 >
 <div
-    id="qualityGraphFilters"
+    id="QualityGraphFilters"
     class="sqdip-chart-filters"
     hidden
 ></div>
     <div
-        id="qualityGraph"
-        class="quality-graph"
+        id="QualityGraph"
+        class="Quality-graph"
     ></div>
 </section>
 
@@ -68,5 +78,5 @@ document.addEventListener(
 
 <script src="{{ url_for( 'static', filename='sqdip-charts.js' ) }}"></script>
 
-<script src="{{ url_for('static', filename='quality.js') }}"></script>
+<script src="{{ url_for('static', filename='Quality.js') }}"></script>
 {% endblock %}

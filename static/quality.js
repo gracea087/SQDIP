@@ -6,27 +6,27 @@ document.addEventListener(
 
         const graphPanel =
             document.getElementById(
-                "qualityGraphPanel"
+                "QualityGraphPanel"
             );
 
         const graphTarget =
             document.getElementById(
-                "qualityGraph"
+                "QualityGraph"
             );
 
-        const filterContainer =
+        const exportButton =
             document.getElementById(
-                "qualityGraphFilters"
+                "exportQualityButton"
             );
 
 
         if (
             !graphPanel
             || !graphTarget
-            || !filterContainer
+            || !exportButton
         ) {
             console.error(
-                "The Quality graph "
+                "The Quality page "
                 + "elements could not be found."
             );
 
@@ -47,180 +47,59 @@ document.addEventListener(
         }
 
 
-        let activeChartId =
+        let activeExportId =
             null;
 
 
-        /*
-         * Q1 Return / Repair filters.
-         */
-        const q1Filters =
-            SQDIPCharts.mountFilterButtons({
+        function hideExportButton() {
 
-                container:
-                    "#qualityGraphFilters",
+            activeExportId =
+                null;
 
-                target:
-                    "#qualityGraph",
+            exportButton.hidden =
+                true;
 
-                chartId:
-                    "Q1",
+            exportButton.disabled =
+                true;
+        }
 
-                filterId:
-                    "q1_type",
 
-                parameterName:
-                    "type",
+        function setExportButton(
+            button,
+            itemId
+        ) {
 
-                includeAll:
-                    true,
+            const exportable =
+                button.dataset
+                    .sqdipExport
+                === "true";
 
-                allLabel:
-                    "ALL"
-            });
 
-        /*
-         * Q7 Type filters.
-         */
-        const q7Filters =
-            SQDIPCharts.mountFilterButtons({
-                container:
-                    "#qualityGraphFilters",
+            if (!exportable) {
+                hideExportButton();
 
-                target:
-                    "#qualityGraph",
+                return;
+            }
 
-                chartId:
-                    "Q7",
 
-                filterId:
-                    "q7_type",
+            activeExportId =
+                itemId;
 
-                parameterName:
-                    "type",
+            exportButton.hidden =
+                false;
 
-                includeAll:
-                    true,
-
-                allLabel:
-                    "ALL"
-            });
+            exportButton.disabled =
+                false;
+        }
 
 
         /*
-         * Q2 location filters.
+         * GRAPH BUTTONS
          */
-        const q2Filters =
-            SQDIPCharts.mountFilterButtons({
-
-                container:
-                    "#qualityGraphFilters",
-
-                target:
-                    "#qualityGraph",
-
-                chartId:
-                    "Q2_grn",
-
-                filterId:
-                    "grn_location",
-
-                parameterName:
-                    "location",
-
-                includeAll:
-                    true,
-
-                allLabel:
-                    "ALL LOCATIONS"
-            });
-
-
-        function hideFilters() {
-            q1Filters.hide();
-            q2Filters.hide();
-            q7Filters.hide();
-        }
-
-
-        function loadQ1Filters() {
-
-            q1Filters.refresh()
-                .then(function () {
-
-                    if (
-                        activeChartId
-                            === "Q1"
-                    ) {
-                        q1Filters.show();
-                    }
-                })
-                .catch(function (error) {
-
-                    console.error(
-                        "Could not load "
-                        + "Q1 filters:",
-                        error
-                    );
-
-                    q1Filters.hide();
-                });
-        }
-
-
-        function loadQ2Filters() {
-
-            q2Filters.refresh()
-                .then(function () {
-
-                    if (
-                        activeChartId
-                            === "Q2_grn"
-                    ) {
-                        q2Filters.show();
-                    }
-                })
-                .catch(function (error) {
-
-                    console.error(
-                        "Could not load "
-                        + "Q2 filters:",
-                        error
-                    );
-
-                    q2Filters.hide();
-                });
-        }
-
-        function loadQ7Filters() {
-
-            q7Filters.refresh()
-                .then(function () {
-
-                    if (
-                        activeChartId
-                            === "Q7"
-                    ) {
-                        q7Filters.show();
-                    }
-                })
-                .catch(function (error) {
-
-                    console.error(
-                        "Could not load "
-                        + "Q7 filters:",
-                        error
-                    );
-
-                    q7Filters.hide();
-                });
-        }
-
-
         SQDIPCharts.mountButtons({
 
             target:
-                "#qualityGraph",
+                "#QualityGraph",
 
             buttons:
                 ".button-container "
@@ -233,37 +112,162 @@ document.addEventListener(
                 false,
 
             onBeforeLoad:
-                function ({
-                    chartId
-                }) {
-
-                    activeChartId =
-                        chartId;
+                function () {
 
                     graphPanel.hidden =
                         false;
 
-                    hideFilters();
+                    hideExportButton();
+                },
 
+            onLoaded:
+                function ({
+                    chartId,
+                    button
+                }) {
 
-                    if (
-                        chartId === "Q1"
-                    ) {
-                        loadQ1Filters();
-                    }
-
-                    else if (
-                        chartId === "Q2_grn"
-                    ) {
-                        loadQ2Filters();
-                    }
-
-                    else if (
-                        chartId === "Q7"
-                    ) {
-                        loadQ7Filters();
-                    }
+                    setExportButton(
+                        button,
+                        chartId
+                    );
                 }
         });
+
+
+        /*
+         * EXCEL EXPORT
+         */
+        exportButton.addEventListener(
+            "click",
+            async function () {
+
+                if (!activeExportId) {
+                    return;
+                }
+
+
+                exportButton.disabled =
+                    true;
+
+
+                try {
+
+                    const response =
+                        await fetch(
+                            "/api/sqdip/export/"
+                            + encodeURIComponent(
+                                activeExportId
+                            )
+                        );
+
+
+                    if (!response.ok) {
+
+                        let message =
+                            "Excel export failed.";
+
+
+                        try {
+
+                            const data =
+                                await response.json();
+
+                            if (data.error) {
+                                message =
+                                    data.error;
+                            }
+
+                        }
+                        catch {
+                            /*
+                             * Not a JSON response.
+                             */
+                        }
+
+
+                        throw new Error(
+                            message
+                        );
+                    }
+
+
+                    const blob =
+                        await response.blob();
+
+
+                    const disposition =
+                        response.headers.get(
+                            "Content-Disposition"
+                        )
+                        || "";
+
+
+                    const match =
+                        disposition.match(
+                            /filename="?([^";]+)"?/i
+                        );
+
+
+                    const filename =
+                        match
+                            ? match[1]
+                            : (
+                                activeExportId
+                                + ".xlsx"
+                            );
+
+
+                    const url =
+                        URL.createObjectURL(
+                            blob
+                        );
+
+
+                    const link =
+                        document.createElement(
+                            "a"
+                        );
+
+
+                    link.href =
+                        url;
+
+                    link.download =
+                        filename;
+
+
+                    document.body.appendChild(
+                        link
+                    );
+
+                    link.click();
+
+                    link.remove();
+
+
+                    URL.revokeObjectURL(
+                        url
+                    );
+
+                }
+                catch (error) {
+
+                    console.error(
+                        "SQDIP export error:",
+                        error
+                    );
+
+                    alert(
+                        error.message
+                    );
+
+                }
+                finally {
+
+                    exportButton.disabled =
+                        false;
+                }
+            }
+        );
     }
 );

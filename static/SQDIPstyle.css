@@ -1990,3 +1990,22 @@ textarea:focus,
     }
 }
 
+.Deliverables-button {
+    background: #378194;
+    width: 175px;
+}
+
+.Inventory-button {
+    background: #378194;
+    width: 175px;
+}
+
+.productivity-button {
+    background: #378194;
+    width: 175px;
+}
+
+.Quality-button {
+    background: #378194;
+    width: 175px;
+}

@@ -2768,7 +2768,630 @@ EXPORTS = {
 
         title="Overdue Purchase Orders",
 
-        filename="Qry_Exp_D1d_OverduePO.xlsx",
+        filename="Qry_Exp_D1d_OverduePO.xls",
+
+        departments=(
+            "pur",
+        )
+    ),
+    "I12": ExportDefinition(
+        sql="""
+        SELECT
+            AllLiveGRN.GRNNo,
+            AllLiveGRN.GRNPartNo,
+            AllItems.PartDescription,
+            AllLiveGRN.GRNQtyLeft,
+            AllItems.PartLeadTime,
+            DATEDIFF(day, GETDATE(),[GRNExpiryDate]) AS DaysTillExpiry,
+            AllLiveGRN.GRNExpiryDate,
+            AllItems.PartGroupCode,
+            AllLiveGRN.GRNLocation,
+            [DemandSO] + [DemandWO] AS Demand,
+            AllItems.PartStockActive
+        FROM
+            AllLiveGRN
+            INNER JOIN AllItems ON AllLiveGRN.GRNPartNo = AllItems.PartNo
+        GROUP BY
+            AllLiveGRN.GRNNo,
+            AllLiveGRN.GRNPartNo,
+            AllItems.PartDescription,
+            AllLiveGRN.GRNQtyLeft,
+            AllItems.PartLeadTime,
+            DATEDIFF(day, GETDATE(),[GRNExpiryDate]),
+            AllLiveGRN.GRNExpiryDate,
+            AllItems.PartGroupCode,
+            AllLiveGRN.GRNLocation,
+            [DemandSO] + [DemandWO],
+            AllItems.PartStockActive,
+            [GRNExpiryDate] - [PartLeadTime] -7
+        HAVING
+            (
+                ((DATEDIFF(day, GETDATE(),[GRNExpiryDate])) < 60)
+                AND ((AllLiveGRN.GRNLocation) NOT LIKE '%QUARANTINE%')
+            )
+        ORDER BY
+            AllLiveGRN.GRNPartNo,
+            DATEDIFF(day, GETDATE(),[GRNExpiryDate]);
+        """,
+        title="Material & PCB shelf life expiry within 60 days",
+
+        filename="Qry_Exp_I12_MatExp.xls",
+
+        departments=(
+            "pur","Man",
+        )
+    ),
+    "D9": ExportDefinition(
+        sql="""
+        SELECT
+            AllLivePO.PONum,
+            AllLivePO.PODetItemNum,
+            DATEDIFF(DAY, GETDATE(),[PODetDatePromised]) AS DaysDue,
+            AllLivePO.PODetDatePromised,
+            [PODetQtyReq] - [PODetQtyRec] AS QtyRemain,
+            employees.Name,
+            AllLivePO.PODetPart,
+            AllLivePO.POSuppAddressName,
+            [OOB-TRACKER-RECEIVED].RECEIVED
+        FROM
+            (
+                (
+                    AllLivePO
+                    INNER JOIN AllItems ON AllLivePO.PODetPart = AllItems.PartNo
+                )
+                INNER JOIN employees ON AllLivePO.POBuyer = employees.BadgeNo
+            )
+            INNER JOIN [OOB-TRACKER-RECEIVED] ON AllLivePO.POSuppAddressName = [OOB-TRACKER-RECEIVED].SuppName
+        GROUP BY
+            AllLivePO.PONum,
+            AllLivePO.PODetItemNum,
+            [PODetDatePromised],
+            AllLivePO.PODetDatePromised,
+            [PODetQtyReq],
+            [PODetQtyRec],
+            employees.Name,
+            AllLivePO.PODetPart,
+            AllLivePO.POSuppAddressName,
+            [OOB-TRACKER-RECEIVED].RECEIVED,
+            [PODetDatePromised],
+            [PODetDateLatest]
+        HAVING
+            (
+                ((AllLivePO.PODetDatePromised) < GETDATE() + 14)
+                AND (datediff(day,[PODetQtyRec], [PODetQtyReq]) > 0)
+                AND (([OOB-TRACKER-RECEIVED].RECEIVED) = 'N')
+                AND (
+                    CONCAT([PODetDatePromised] , ' ' , [PODetDateLatest]) NOT LIKE '%01/01/2001%'
+                    AND CONCAT([PODetDatePromised] , ' ' , [PODetDateLatest]) NOT LIKE '%31/12/2018%'
+                    AND CONCAT([PODetDatePromised] , ' ' , [PODetDateLatest]) NOT LIKE '%25/12/2081%'
+                    AND CONCAT([PODetDatePromised] , ' ' , [PODetDateLatest]) NOT LIKE '%01/01/2111%'
+                    AND CONCAT([PODetDatePromised] , ' ' , [PODetDateLatest]) NOT LIKE '%04/01/2081%'
+                    AND CONCAT([PODetDatePromised] , ' ' , [PODetDateLatest]) NOT LIKE '%10/10/2010%'
+                    AND CONCAT([PODetDatePromised] , ' ' , [PODetDateLatest]) NOT LIKE '%09/09/2009%'
+                    AND CONCAT([PODetDatePromised] , ' ' , [PODetDateLatest]) NOT LIKE '%08/08/2008%'
+                    AND CONCAT([PODetDatePromised] , ' ' , [PODetDateLatest]) NOT LIKE '%02/02/2002%'
+                )
+            )
+        ORDER BY DATEDIFF(DAY, GETDATE(),[PODetDatePromised]);
+        """,
+        title="PO's due in next 2 weeks inc overdue",
+
+        filename="Qry_Exp_D9_PO2Week.xls",
+
+        departments=(
+            "pur",
+        )
+    ),
+    "D11": ExportDefinition(
+        sql="""
+        SELECT
+            AllItems.PartNo,
+            AllItems.PartDescription,
+            AllItems.PartDefLocation,
+            [PartStockActive] - [DemandSO] - [DemandWO] + [PartStockOnOrderPO] + [PartStockOnOrderWO] AS FinalStockBalance
+        FROM
+            AllItems
+        WHERE
+            (
+                (
+                    (
+                        [PartStockActive] - [DemandSO] - [DemandWO] + [PartStockOnOrderPO] + [PartStockOnOrderWO]
+                    ) < 0
+                )
+                AND ((AllItems.PartMainlyPurchased) = 1)
+            );
+        """,
+        title="Parts to be purchased",
+
+        filename="Qry_Exp_D11_PartsToPurchase.xls",
+
+        departments=(
+            "pur",
+        )
+    ),
+    "I15": ExportDefinition(
+        sql="""
+        SELECT
+            TransAltEdit.TransID,
+            Left([TransTime], 10) AS [DateTime],
+            TransAltEdit.TransObjectType,
+            TransAltEdit.TransObjectID,
+            TransAltEdit.TransUser,
+            TransAltEdit.TransMemo
+        FROM
+            TransAltEdit
+        ORDER BY
+            TransAltEdit.TransID;
+        """,
+        title="Part Detail Changes not checked",
+
+        filename="Qry_Exp_I15_TransAltEdit.xls",
+
+        departments=(
+            "pur",
+        )
+    ),
+    "D8": ExportDefinition(
+        sql="""
+        WITH Qry_MaxPOUnitPrice AS (
+            SELECT
+                AllLivePO.PODetPart AS POPartNo,
+                Max(AllLivePO.PODetUnitPrice) AS MaxOfPODetUnitPrice
+            FROM
+                AllLivePO
+            GROUP BY
+                AllLivePO.PODetPart)
+
+            SELECT
+                AllLivePO.PODetPart,
+                employees.Name,
+                [MaxOfPODetUnitPrice] * (
+                    IIf(
+                        [PartStockOnOrderPO] < [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO],
+                        [PartStockOnOrderPO],
+                        [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO]
+                    ) / [PartUOMUOPConv]
+                ) AS ExcessCost,
+                IIf(
+                    [PartStockOnOrderPO] < [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO],
+                    [PartStockOnOrderPO],
+                    [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO]
+                ) AS ExcessQty,
+                AllItems.PartStockActive,
+                AllItems.DemandWO,
+                AllItems.DemandSO,
+                AllItems.PartUOMUOPConv,
+                AllLivePO.PONum
+            FROM
+                (
+                    (
+                        AllLivePO
+                        INNER JOIN AllItems ON AllLivePO.PODetPart = AllItems.PartNo
+                    )
+                    INNER JOIN employees ON AllLivePO.POBuyer = employees.BadgeNo
+                )
+                INNER JOIN Qry_MaxPOUnitPrice ON AllLivePO.PODetPart = Qry_MaxPOUnitPrice.POPartNo
+            WHERE
+                (((AllItems.PartMinStockLev) = 0))
+            GROUP BY
+                AllLivePO.PODetPart,
+                employees.Name,
+                [MaxOfPODetUnitPrice] * (
+                    IIf(
+                        [PartStockOnOrderPO] < [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO],
+                        [PartStockOnOrderPO],
+                        [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO]
+                    ) / [PartUOMUOPConv]
+                ),
+                IIf(
+                    [PartStockOnOrderPO] < [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO],
+                    [PartStockOnOrderPO],
+                    [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO]
+                ),
+                AllItems.PartStockActive,
+                AllItems.DemandWO,
+                AllItems.DemandSO,
+                AllItems.PartUOMUOPConv,
+                AllLivePO.PONum
+            HAVING
+                (
+                    (
+                        (
+                            [MaxOfPODetUnitPrice] * (
+                                IIf(
+                                    [PartStockOnOrderPO] < [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO],
+                                    [PartStockOnOrderPO],
+                                    [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO]
+                                ) / [PartUOMUOPConv]
+                            )
+                        ) > 20
+                    )
+                    AND (
+                        (
+                            IIf(
+                                [PartStockOnOrderPO] < [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO],
+                                [PartStockOnOrderPO],
+                                [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO]
+                            )
+                        ) > 0
+                    )
+                    AND (
+                        (Min(AllLivePO.PODetDatePromised)) NOT LIKE '1 / 1 / 2001 '
+                        AND (Min(AllLivePO.PODetDatePromised)) NOT LIKE '4 / 1 / 2081 '
+                        AND (Min(AllLivePO.PODetDatePromised)) NOT LIKE '1 / 1 / 2002 '
+                    )
+                )
+            ORDER BY
+                [MaxOfPODetUnitPrice] * (
+                    IIf(
+                        [PartStockOnOrderPO] < [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO],
+                        [PartStockOnOrderPO],
+                        [PartStockActive] + [PartStockOnOrderPO] - [DemandSO] - [DemandWO]
+                    ) / [PartUOMUOPConv]
+                ) DESC;
+        """,
+        title="Excess PO Qty",
+
+        filename="Qry_Exp_D8_ExcessPO.xls",
+
+        departments=(
+            "pur",
+        )
+    ),
+    "P6": ExportDefinition(
+        sql="""
+        SELECT
+            AllLivePO.PONum,
+            AllLivePO.POSuppAddressName,
+            employees.Name,
+            AllLivePO.POSentDate,
+            AllLivePO.POOrderDate
+        FROM
+            AllLivePO
+            INNER JOIN employees ON AllLivePO.POBuyer = employees.BadgeNo
+        WHERE
+            (
+                (
+                    (AllLivePO.PODetDatePromised) NOT LIKE '4 / 1 / 2081 '
+                )
+            )
+        GROUP BY
+            AllLivePO.PONum,
+            AllLivePO.POSuppAddressName,
+            employees.Name,
+            AllLivePO.POSentDate,
+            AllLivePO.POOrderDate,
+            AllLivePO.POConfirmation,
+            AllLivePO.POSubmitted
+        HAVING
+            (
+                ((AllLivePO.POConfirmation) = 0)
+                AND ((AllLivePO.POSubmitted) = 1)
+            )
+        ORDER BY
+            AllLivePO.POSentDate;
+        """,
+        title="PO's waiting Confirmation",
+
+        filename="Qry_Exp_P6_UnconfirmedPO.xls",
+
+        departments=(
+            "pur",
+        )
+    ),
+    "Q7": ExportDefinition(
+        sql="""
+        SELECT
+            AllOpenNCRActions.NCR,
+            AllOpenNCRActions.Type,
+            DATEDIFF(day, GETDATE(), [Target]) AS [Days Due],
+            employees.Name
+        FROM
+            AllOpenNCRActions
+            INNER JOIN employees ON AllOpenNCRActions.Who = employees.BadgeNo
+        ORDER BY
+            [Days Due] DESC;
+        """,
+        title="NCR Actions Due within 7 Days",
+
+        filename="Qry_Exp_Q7_NCR.xls",
+
+        departments=(
+            "pur", "com", "eng", "man", "qa",
+        )
+    ),
+    "P3a": ExportDefinition(
+        sql="""
+        SELECT
+            AllCR.ContractReviewNo,
+            AllCR.ContRevDetailTaskNo,
+            AllCR.ContRevDetailTask,
+            AllCR.AssignedName,
+            DATEDIFF(DAY, GETDATE(), [ContRevDetailTargetDate]) AS DaysTillDue,
+            AllCR.ContRevDetailLeadTime
+        FROM
+            AllCR
+            INNER JOIN employees ON AllCR.AssignedName = employees.Name
+        GROUP BY
+            AllCR.ContractReviewNo,
+            AllCR.ContRevDetailTaskNo,
+            AllCR.ContRevDetailTask,
+            AllCR.AssignedName,
+            [ContRevDetailTargetDate],
+            AllCR.CRStatusDescription,
+            AllCR.ContractReviewDate,
+            AllCR.ContRevDetailLeadTime
+        HAVING
+            (
+                ((DATEDIFF(DAY, GETDATE(), [ContRevDetailTargetDate])) < 0)
+                AND ((AllCR.CRStatusDescription) = 'Open')
+            )
+        ORDER BY
+            DATEDIFF(DAY, GETDATE(), [ContRevDetailTargetDate]),
+            AllCR.ContractReviewDate;
+        """,
+        title="Overdue CR actions",
+
+        filename="Qry_Exp_P3A_CrActions.xls",
+
+        departments=(
+            "pur", "com", "eng", "man", "qa",
+        )
+    ),
+    "D4": ExportDefinition(
+        sql="""
+        WITH Qry_RiskOrderPendAppr AS
+        (
+            SELECT
+                po.PONum,
+                po.PODetItemNum,
+                po.POSuppAddressName,
+
+                MIN(po.PODetDateReq)
+                    AS FirstOfPODetDateReq,
+
+                po.PODetDatePromised,
+
+                SUM(
+                    po.PODetQtyReq
+                    * po.PODetUnitPrice
+                ) AS PoValue,
+
+                emp.Name
+
+            FROM AllLivePO AS po
+
+            INNER JOIN employees AS emp
+                ON po.POBuyer = emp.BadgeNo
+
+            WHERE
+                CAST(po.PODetDatePromised AS date)
+                    = '20810401'
+
+            GROUP BY
+                po.PONum,
+                po.PODetItemNum,
+                po.POSuppAddressName,
+                po.PODetDatePromised,
+                emp.Name
+        )
+
+        SELECT
+            PONum,
+            PODetItemNum,
+            PoValue,
+            Name AS Buyer,
+            POSuppAddressName,
+
+            DATEDIFF(
+                DAY,
+                GETDATE(),
+                FirstOfPODetDateReq
+            ) AS DaysTillReq
+
+        FROM Qry_RiskOrderPendAppr
+
+        ORDER BY
+            PONum,
+            PODetItemNum;
+        """,
+        title="Risk Orders Pending Approval",
+
+        filename="Qry_Exp_D4_RiskPendingPO.xls",
+
+        departments=(
+            "pur",
+        )
+    ),
+    "D7": ExportDefinition(
+        sql="""
+        SELECT
+            CONCAT([PONum] , ' # ' , [POSuppAddressName]) AS Details,
+            AllLivePO.PODetItemNum,
+            DATEDIFF(DAY,[POOrderDate],getdate()) AS Days,
+            7 AS Target,
+            employees.Name
+        FROM
+            AllLivePO
+            LEFT JOIN employees ON AllLivePO.POBuyer = employees.BadgeNo
+        WHERE
+            (
+                (
+                    (AllLivePO.PODetDatePromised) NOT LIKE '4 / 1 / 2081'
+                )
+            )
+        GROUP BY
+            [PONum],
+            [POSuppAddressName],
+            AllLivePO.PODetItemNum,
+            [POOrderDate],
+            employees.Name,
+            AllLivePO.POSubmitted
+        HAVING
+            (((AllLivePO.POSubmitted) = 0))
+        ORDER BY
+            DATEDIFF(DAY,[POOrderDate],getdate()) DESC;
+        """,
+        title="PO Not Submitted",
+
+        filename="Qry_Exp_D7_PONotSubmit.xls",
+
+        departments=(
+            "pur",
+        )
+    ),
+    "D1b": ExportDefinition(
+        sql="""
+        SELECT
+            po.PONum AS PO,
+            po.PODetItemNum,
+            po.PODetPart,
+            po.PODetPartDescr,
+            po.POSuppAddressName,
+            emp.Name AS Buyer,
+
+            DATEDIFF(DAY,GETDATE(),po.PODetDateReq) AS DaysTillReq,
+            po.PODetDatePromised,
+            po.PODetDateLatest
+
+        FROM AllLivePO AS po
+
+        INNER JOIN employees AS emp ON po.POBuyer = emp.BadgeNo
+
+        WHERE
+            CAST(po.PODetDatePromised AS date) = '20811225'
+            OR
+            CAST(po.PODetDateLatest AS date) = '20811225'
+
+        ORDER BY DaysTillReq DESC;
+        """,
+        title="Unknown Delivery Date Purchase Orders",
+
+        filename="Qry_Exp_D1b_UnknownPO.xls",
+
+        departments=(
+            "pur",
+        )
+    ),
+    "D2": ExportDefinition(
+        sql="""
+        with [PV658-ReFormat] as (
+        SELECT
+            PV658.PO,
+            IIf(IsNumeric([PO_Line]) = '1', [PO_Line] * 1, 0) AS POline,
+            PV658.DateRaised,
+            PV658.DateReleased
+        FROM
+            PV658
+        WHERE
+            (((PV658.PO) IS NOT NULL)))
+
+        SELECT
+            [PV658-ReFormat].PO AS PO,
+            [PV658-ReFormat].POline,
+            [PV658-BuyerEngineer].FirstOfBuyer AS Buyer,
+            AllLivePO.POSuppAddressName,
+            [PV658-ReFormat].DateRaised,
+            datediff(day, Max([DateRaised]), GETDATE()) AS DaysInQuery,
+            [PV658-ReFormat].DateReleased,
+            AllLivePO.PODetDatePromised
+        FROM
+            (
+                AllLivePO
+                RIGHT JOIN [PV658-ReFormat] ON (AllLivePO.PODetItemNum = [PV658-ReFormat].POline)
+                AND (AllLivePO.PONum = [PV658-ReFormat].PO)
+            )
+            LEFT JOIN [PV658-BuyerEngineer] ON AllLivePO.PONum = [PV658-BuyerEngineer].PO
+        GROUP BY
+            [PV658-ReFormat].PO,
+            [PV658-ReFormat].POline,
+            [PV658-BuyerEngineer].FirstOfBuyer,
+            AllLivePO.POSuppAddressName,
+            [PV658-ReFormat].DateRaised,
+            [PV658-ReFormat].DateReleased,
+            AllLivePO.PODetDatePromised
+        HAVING
+            (
+                (([PV658-ReFormat].DateRaised) > '7 / 31 / 2023')
+                AND (([PV658-ReFormat].DateReleased) IS NULL)
+            )
+        ORDER BY DaysInQuery DESC;
+        """,
+        title="Purchase Orders in Query",
+
+        filename="Qry_Exp_D2_QueryPO.xls",
+
+        departments=(
+            "pur",
+        )
+    ),
+    "D3b": ExportDefinition(
+        sql="""
+        SELECT
+            po.PONum AS PO,
+            po.PODetItemNum,
+            items.PartNo,
+            emp.Name AS Buyer,
+            po.PODetUnitPrice * po.PODetQtyReq AS [Value],
+            po.PODetDatePromised,
+            demand.DemandType AS [Demand WO/SO],
+            demand.DemandDate AS [Demand Date],
+            DATEDIFF(DAY,GETDATE(),po.PODetDatePromised) AS [Days Till Due],
+            DATEDIFF(DAY,GETDATE(),demand.DemandDate) AS [Days Till Required],
+            FORMAT(po.PODetDatePromised,'yyyy MM') AS [PO Month],
+            FORMAT(demand.DemandDate,'yyyy MM') AS [WO/SO Month],
+            po.POSuppAddressName
+
+        FROM AllLivePO AS po
+
+        LEFT JOIN AllItems AS items ON items.PartNo = po.PODetPart
+        LEFT JOIN employees AS emp ON po.POBuyer = emp.BadgeNo
+        LEFT JOIN SQDIP_PONoDemandOK AS demandOK ON po.PODetItemNum = demandOK.Line
+            AND po.PONum = demandOK.PO
+
+        CROSS APPLY
+        (SELECT CASE
+                    WHEN items.MinOfWOSchedStartDate IS NULL
+                        THEN items.MinOfSOLinePromisedDate
+                    WHEN items.MinOfSOLinePromisedDate
+                            < items.MinOfWOSchedStartDate
+                        THEN items.MinOfSOLinePromisedDate
+                    ELSE items.MinOfWOSchedStartDate
+                END AS DemandDate,
+                CASE
+                    WHEN items.MinOfWOSchedStartDate IS NULL
+                        THEN 'SO'
+                    WHEN items.MinOfSOLinePromisedDate
+                            < items.MinOfWOSchedStartDate
+                        THEN 'SO'
+                    ELSE 'WO'
+                END AS DemandType
+        ) AS demand
+
+        WHERE
+            (po.PODetUnitPrice * po.PODetQtyReq) > 100
+            AND CAST(po.PODetDatePromised AS date) NOT IN
+            ('20080808',
+            '20181225',
+            '20181231',
+            '20180401',
+            '20010101')
+
+            AND demand.DemandDate > po.PODetDatePromised
+            AND DATEDIFF(DAY,GETDATE(),demand.DemandDate) >= 28
+            AND FORMAT(demand.DemandDate,'yyyy MM') <> FORMAT(po.PODetDatePromised,'yyyy MM')
+            AND (COALESCE(items.DemandSO,0)+COALESCE(items.DemandWO,0)) > 0
+            AND demandOK.PO IS NULL
+
+        ORDER BY
+            emp.Name,
+            po.PODetDatePromised,
+            DATEDIFF(DAY,GETDATE(),demand.DemandDate
+            );
+        """,
+        title="PO's With Promised Dsate in Month Prior to Demand",
+
+        filename="Qry_Exp_D3b_PO_DemandMonthPrior.xls",
 
         departments=(
             "pur",
